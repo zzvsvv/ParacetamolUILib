@@ -215,6 +215,7 @@ function Window:_build()
 		Name = "ParacetamolUILib",
 		IgnoreGuiInset = true,
 		ResetOnSpawn = false,
+		DisplayOrder = 999999,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, PlayerGui)
 

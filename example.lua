@@ -1,17 +1,7 @@
 -- Example LocalScript / executor file.
--- In Roblox Studio, paste this into a LocalScript after loading the library however your workflow prefers.
--- In most executors, this file can be executed directly if readfile/loadstring are available.
+-- Loads ParacetamolUILib from GitHub and creates a demo window.
 
-local libraryPath = "D:\\ParacetamolUILib\\ParacetamolUILib.lua"
-local Library
-
-if typeof(readfile) == "function" and typeof(loadstring) == "function" then
-	Library = loadstring(readfile(libraryPath))()
-elseif getgenv and getgenv().ParacetamolUILib then
-	Library = getgenv().ParacetamolUILib
-else
-	error("Load ParacetamolUILib.lua first, or use an executor with readfile/loadstring.")
-end
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/zzvsvv/ParacetamolUILib/refs/heads/main/ParacetamolUILib.lua"))()
 
 local Window = Library:CreateWindow("Paracetamol UI Example", {
 	AccentColor = Color3.fromRGB(0, 170, 255),
