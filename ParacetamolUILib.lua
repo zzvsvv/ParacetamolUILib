@@ -27,13 +27,13 @@ Library.Defaults = {
 }
 
 Library.Icons = {
-	User = "rbxassetid://115490898912498",
-	Home = "rbxassetid://106563839778007",
-	Gun = "rbxassetid://140567533638263",
-	Settings = "rbxassetid://84003076166210",
-	Misc = "rbxassetid://106053032870442",
-	Code = "rbxassetid://90816308792023",
-	Terminal = "rbxassetid://113638765567202",
+	User = "User",
+	Home = "Home",
+	Gun = "Gun",
+	Settings = "Settings",
+	Misc = "Misc",
+	Code = "Code",
+	Terminal = "Terminal",
 }
 
 local Window = {}
@@ -91,21 +91,9 @@ local function tween(obj, props, duration)
 	return tw
 end
 
-local function assetId(value)
-	if typeof(value) == "number" then
-		return "rbxassetid://" .. tostring(value)
-	end
-
-	value = tostring(value or "")
-	if value:find("rbxassetid://", 1, true) then
-		return value
-	end
-
-	if tonumber(value) then
-		return "rbxassetid://" .. value
-	end
-
-	return Library.Icons[value] or Library.Icons.Misc
+local function iconName(value)
+	value = tostring(value or "Misc")
+	return Library.Icons[value] or value
 end
 
 local function colorRecord(color)
@@ -146,12 +134,138 @@ local function text(parent, value, size, bold)
 		BackgroundTransparency = 1,
 		Text = value or "",
 		TextColor3 = Color3.fromRGB(235, 238, 242),
-		Font = bold and Enum.Font.GothamBold or Enum.Font.GothamMedium,
+		Font = bold and Enum.Font.GothamSemibold or Enum.Font.Gotham,
 		TextSize = size or 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 	}, parent)
+end
+
+local function createPrimitiveIcon(parent, name, color, zIndex)
+	local icon = {
+		Parts = {},
+	}
+
+	local root = make("Frame", {
+		Name = "PrimitiveIcon",
+		Size = UDim2.fromOffset(22, 22),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		ZIndex = zIndex or 1,
+	}, parent)
+	icon.Scale = make("UIScale", {
+		Scale = 1,
+	}, root)
+
+	local function addColorable(instance, property)
+		table.insert(icon.Parts, {Instance = instance, Property = property or "BackgroundColor3"})
+	end
+
+	local function line(x, y, w, h, rotation)
+		local part = make("Frame", {
+			Size = UDim2.fromOffset(w, h),
+			Position = UDim2.fromOffset(x, y),
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			Rotation = rotation or 0,
+			ZIndex = root.ZIndex + 1,
+		}, root)
+		corner(part, math.max(2, math.floor(h / 2)))
+		addColorable(part)
+		return part
+	end
+
+	local function ring(x, y, w, h, thickness)
+		local part = make("Frame", {
+			Size = UDim2.fromOffset(w, h),
+			Position = UDim2.fromOffset(x, y),
+			BackgroundTransparency = 1,
+			ZIndex = root.ZIndex + 1,
+		}, root)
+		corner(part, math.floor(math.min(w, h) / 2))
+		local outline = stroke(part, color, 0, thickness or 2)
+		addColorable(outline, "Color")
+		return part
+	end
+
+	local function dot(x, y, size)
+		local part = make("Frame", {
+			Size = UDim2.fromOffset(size, size),
+			Position = UDim2.fromOffset(x, y),
+			BackgroundColor3 = color,
+			BorderSizePixel = 0,
+			ZIndex = root.ZIndex + 1,
+		}, root)
+		corner(part, math.floor(size / 2))
+		addColorable(part)
+		return part
+	end
+
+	name = iconName(name)
+
+	if name == "Home" then
+		line(4, 8, 10, 2, -38)
+		line(9, 8, 10, 2, 38)
+		line(6, 11, 2, 8, 0)
+		line(15, 11, 2, 8, 0)
+		line(6, 18, 11, 2, 0)
+	elseif name == "User" then
+		ring(7, 2, 8, 8, 2)
+		ring(4, 12, 14, 8, 2)
+	elseif name == "Gun" then
+		line(4, 8, 14, 3, 0)
+		line(15, 6, 4, 2, 0)
+		line(7, 11, 8, 2, 0)
+		line(8, 12, 3, 8, -18)
+		line(13, 11, 4, 2, 45)
+	elseif name == "Settings" then
+		ring(7, 7, 8, 8, 2)
+		for _, data in ipairs({
+			{10, 1, 2, 5, 0},
+			{10, 16, 2, 5, 0},
+			{1, 10, 5, 2, 0},
+			{16, 10, 5, 2, 0},
+			{3, 4, 5, 2, 45},
+			{15, 16, 5, 2, 45},
+			{15, 4, 5, 2, -45},
+			{3, 16, 5, 2, -45},
+		}) do
+			line(data[1], data[2], data[3], data[4], data[5])
+		end
+	elseif name == "Code" then
+		line(5, 6, 8, 2, -42)
+		line(5, 14, 8, 2, 42)
+		line(11, 6, 8, 2, 42)
+		line(11, 14, 8, 2, -42)
+		line(10, 3, 2, 16, 14)
+	elseif name == "Terminal" then
+		line(5, 7, 7, 2, 35)
+		line(5, 13, 7, 2, -35)
+		line(12, 17, 8, 2, 0)
+	elseif name == "Misc" then
+		for _, pos in ipairs({{4, 4}, {13, 4}, {4, 13}, {13, 13}}) do
+			dot(pos[1], pos[2], 5)
+		end
+	else
+		line(4, 5, 14, 2, 0)
+		line(4, 10, 14, 2, 0)
+		line(4, 15, 14, 2, 0)
+	end
+
+	icon.Root = root
+
+	function icon:SetColor(newColor)
+		for _, part in ipairs(self.Parts) do
+			if part.Instance and part.Instance.Parent then
+				part.Instance[part.Property] = newColor
+			end
+		end
+	end
+
+	icon:SetColor(color)
+	return icon
 end
 
 function Library:Init(options)
@@ -173,6 +287,7 @@ function Library:CreateWindow(title, options)
 		ThemeObjects = {},
 		ThemeCallbacks = {},
 		ControlValues = {},
+		Notifications = {},
 		ActiveTab = nil,
 		Destroyed = false,
 		Minimized = false,
@@ -309,16 +424,9 @@ function Window:_build()
 	corner(side, 18)
 	stroke(side, Color3.fromRGB(255, 58, 95), 0.82, 1)
 
-	local logo = make("ImageLabel", {
-		Name = "Logo",
-		Size = UDim2.fromOffset(54, 54),
-		Position = UDim2.fromOffset(10, 12),
-		BackgroundTransparency = 1,
-		Image = Library.Icons.Home,
-		ImageColor3 = self.Settings.IconColor,
-		ScaleType = Enum.ScaleType.Fit,
-		ZIndex = 7,
-	}, side)
+	local logo = createPrimitiveIcon(side, "Home", self.Settings.IconColor, 7)
+	logo.Root.Name = "Logo"
+	logo.Root.Position = UDim2.fromOffset(37, 39)
 
 	local logoLine = make("Frame", {
 		Size = UDim2.fromOffset(52, 1),
@@ -353,16 +461,7 @@ function Window:_build()
 		ZIndex = 8,
 	}, side)
 	corner(settingsButton, 10)
-	local settingsIcon = make("ImageLabel", {
-		Size = UDim2.fromOffset(20, 20),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundTransparency = 1,
-		Image = Library.Icons.Settings,
-		ImageColor3 = self.Settings.MutedTextColor,
-		ScaleType = Enum.ScaleType.Fit,
-		ZIndex = 9,
-	}, settingsButton)
+	local settingsIcon = createPrimitiveIcon(settingsButton, "Settings", self.Settings.MutedTextColor, 9)
 
 	local top = make("Frame", {
 		Name = "TopDrag",
@@ -420,6 +519,18 @@ function Window:_build()
 	self.TabsLayout = tabsLayout
 	self.SettingsButton = settingsButton
 	self.SettingsIcon = settingsIcon
+	self.NotificationHolder = make("Frame", {
+		Name = "Notifications",
+		Size = UDim2.fromOffset(280, 420),
+		Position = UDim2.new(1, -296, 0, 16),
+		BackgroundTransparency = 1,
+		ZIndex = 100,
+	}, gui)
+	make("UIListLayout", {
+		Padding = UDim.new(0, 8),
+		HorizontalAlignment = Enum.HorizontalAlignment.Right,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, self.NotificationHolder)
 
 	self:_connect(settingsButton.MouseButton1Click, function()
 		if self.SettingsTab then
@@ -442,8 +553,8 @@ function Window:_build()
 	self:_makeDraggable(top)
 
 	self:_onTheme(function()
-		logo.ImageColor3 = self.Settings.IconColor
-		settingsIcon.ImageColor3 = self.ActiveTab == self.SettingsTab and self.Settings.IconColor or self.Settings.MutedTextColor
+		logo:SetColor(self.Settings.IconColor)
+		settingsIcon:SetColor(self.ActiveTab == self.SettingsTab and self.Settings.IconColor or self.Settings.MutedTextColor)
 	end)
 
 	logoLine.Active = false
@@ -504,7 +615,7 @@ function Window:LoadConfig()
 	for _, control in ipairs(self.Controls) do
 		local value = self.ControlValues[control.Key]
 		if value ~= nil then
-			control:SetValue(value, true)
+			control:SetValue(value, false)
 		end
 	end
 	self:_applyTheme()
@@ -519,7 +630,7 @@ function Window:CreateTab(name, icon)
 	local icons = {Library.Icons.Home, Library.Icons.Gun, Library.Icons.User, Library.Icons.Misc, Library.Icons.Code, Library.Icons.Terminal}
 	local tab = setmetatable({
 		Name = name or "Tab",
-		Icon = assetId(icon or icons[(#self.Tabs % #icons) + 1]),
+		Icon = iconName(icon or icons[(#self.Tabs % #icons) + 1]),
 		Window = self,
 		Modules = {},
 		NextColumn = 1,
@@ -536,17 +647,7 @@ function Window:CreateTab(name, icon)
 	}, self.TabsHolder)
 	corner(button, 10)
 
-	local iconImage = make("ImageLabel", {
-		Name = "Icon",
-		Size = UDim2.fromOffset(22, 22),
-		Position = UDim2.fromScale(0.5, 0.5),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundTransparency = 1,
-		Image = tab.Icon,
-		ImageColor3 = self.Settings.MutedTextColor,
-		ScaleType = Enum.ScaleType.Fit,
-		ZIndex = 9,
-	}, button)
+	local iconGraphic = createPrimitiveIcon(button, tab.Icon, self.Settings.MutedTextColor, 9)
 
 	local activeBar = make("Frame", {
 		Size = UDim2.fromOffset(3, 30),
@@ -637,18 +738,18 @@ function Window:CreateTab(name, icon)
 	self:_connect(button.MouseEnter, function()
 		if self.ActiveTab ~= tab then
 			tween(button, {BackgroundTransparency = 0.72}, 0.16)
-			tween(iconImage, {ImageColor3 = self.Settings.IconColor}, 0.16)
+			iconGraphic:SetColor(self.Settings.IconColor)
 		end
 	end)
 	self:_connect(button.MouseLeave, function()
 		if self.ActiveTab ~= tab then
 			tween(button, {BackgroundTransparency = 0.84}, 0.16)
-			tween(iconImage, {ImageColor3 = self.Settings.MutedTextColor}, 0.16)
+			iconGraphic:SetColor(self.Settings.MutedTextColor)
 		end
 	end)
 
 	tab.Button = button
-	tab.IconImage = iconImage
+	tab.IconGraphic = iconGraphic
 	tab.ActiveBar = activeBar
 	tab.Page = page
 	tab.Scroll = scroll
@@ -675,9 +776,9 @@ function Window:SelectTab(tab)
 			BackgroundColor3 = active and self.Settings.AccentColor or self.Settings.IconColor,
 			BackgroundTransparency = active and 0.18 or 0.84,
 		}, 0.14)
-		tween(other.IconImage, {
-			ImageColor3 = active and self.Settings.IconColor or self.Settings.MutedTextColor,
-			Size = active and UDim2.fromOffset(24, 24) or UDim2.fromOffset(22, 22),
+		other.IconGraphic:SetColor(active and self.Settings.IconColor or self.Settings.MutedTextColor)
+		tween(other.IconGraphic.Scale, {
+			Scale = active and 1.08 or 1,
 		}, 0.18)
 		tween(other.ActiveBar, {
 			BackgroundTransparency = active and 0 or 1,
@@ -702,9 +803,9 @@ function Window:SelectTab(tab)
 			BackgroundTransparency = settingsActive and 0.12 or 0.82,
 			BackgroundColor3 = settingsActive and self.Settings.AccentColor or self.Settings.IconColor,
 		}, 0.16)
-		tween(self.SettingsIcon, {
-			ImageColor3 = settingsActive and self.Settings.IconColor or self.Settings.MutedTextColor,
-			Size = settingsActive and UDim2.fromOffset(22, 22) or UDim2.fromOffset(20, 20),
+		self.SettingsIcon:SetColor(settingsActive and self.Settings.IconColor or self.Settings.MutedTextColor)
+		tween(self.SettingsIcon.Scale, {
+			Scale = settingsActive and 1.08 or 1,
 		}, 0.16)
 	end
 
@@ -714,11 +815,11 @@ end
 function Window:_refreshTabVisuals()
 	for _, tab in ipairs(self.Tabs) do
 		local active = tab == self.ActiveTab
-		if tab.Button and tab.IconImage and tab.ActiveBar then
+		if tab.Button and tab.IconGraphic and tab.ActiveBar then
 			tab.Button.BackgroundColor3 = active and self.Settings.AccentColor or self.Settings.IconColor
 			tab.Button.BackgroundTransparency = active and 0.18 or 0.84
-			tab.IconImage.ImageColor3 = active and self.Settings.IconColor or self.Settings.MutedTextColor
-			tab.IconImage.Size = active and UDim2.fromOffset(24, 24) or UDim2.fromOffset(22, 22)
+			tab.IconGraphic:SetColor(active and self.Settings.IconColor or self.Settings.MutedTextColor)
+			tab.IconGraphic.Scale.Scale = active and 1.08 or 1
 			tab.ActiveBar.BackgroundTransparency = active and 0 or 1
 		end
 	end
@@ -727,8 +828,8 @@ function Window:_refreshTabVisuals()
 		local settingsActive = self.ActiveTab == self.SettingsTab
 		self.SettingsButton.BackgroundColor3 = settingsActive and self.Settings.AccentColor or self.Settings.IconColor
 		self.SettingsButton.BackgroundTransparency = settingsActive and 0.12 or 0.82
-		self.SettingsIcon.ImageColor3 = settingsActive and self.Settings.IconColor or self.Settings.MutedTextColor
-		self.SettingsIcon.Size = settingsActive and UDim2.fromOffset(22, 22) or UDim2.fromOffset(20, 20)
+		self.SettingsIcon:SetColor(settingsActive and self.Settings.IconColor or self.Settings.MutedTextColor)
+		self.SettingsIcon.Scale.Scale = settingsActive and 1.08 or 1
 	end
 end
 
@@ -809,6 +910,63 @@ function Window:OpenSettingsPanel()
 	if self.SettingsTab then
 		self:SelectTab(self.SettingsTab)
 	end
+end
+
+function Window:Notify(message, duration)
+	duration = duration or 3
+	if not self.NotificationHolder then
+		return
+	end
+
+	local item = make("Frame", {
+		Name = "Notification",
+		Size = UDim2.fromOffset(0, 48),
+		BackgroundColor3 = self.Settings.ModuleColor,
+		BackgroundTransparency = 0.08,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		ZIndex = 101,
+	}, self.NotificationHolder)
+	corner(item, 10)
+	stroke(item, self.Settings.AccentColor, 0.55, 1)
+
+	local accent = make("Frame", {
+		Size = UDim2.new(0, 3, 1, -12),
+		Position = UDim2.fromOffset(8, 6),
+		BackgroundColor3 = self.Settings.AccentColor,
+		BorderSizePixel = 0,
+		ZIndex = 102,
+	}, item)
+	corner(accent, 3)
+
+	local label = text(item, tostring(message or ""), 12, false)
+	label.Size = UDim2.new(1, -28, 1, -8)
+	label.Position = UDim2.fromOffset(20, 4)
+	label.TextWrapped = true
+	label.TextColor3 = self.Settings.TextColor
+	label.ZIndex = 102
+
+	local progress = make("Frame", {
+		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.new(0, 0, 1, -2),
+		BackgroundColor3 = self.Settings.AccentColor,
+		BorderSizePixel = 0,
+		ZIndex = 102,
+	}, item)
+
+	tween(item, {Size = UDim2.fromOffset(260, 48)}, 0.28)
+	tween(progress, {Size = UDim2.new(0, 0, 0, 2)}, duration)
+
+	task.delay(duration, function()
+		if item and item.Parent then
+			tween(item, {Size = UDim2.fromOffset(0, 48), BackgroundTransparency = 1}, 0.22)
+			task.delay(0.24, function()
+				if item and item.Parent then
+					item:Destroy()
+				end
+			end)
+		end
+	end)
 end
 
 function Window:Destroy()
