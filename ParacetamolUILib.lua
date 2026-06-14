@@ -20,6 +20,7 @@ Library.Defaults = {
 	PanelColor = Color3.fromRGB(18, 19, 24),
 	TextColor = Color3.fromRGB(242, 244, 248),
 	MutedTextColor = Color3.fromRGB(150, 155, 166),
+	IconColor = Color3.fromRGB(242, 244, 248),
 	Saveable = true,
 	SaveKey = "ParacetamolConfig",
 	Blur = true,
@@ -213,9 +214,7 @@ function Window:_applyTheme()
 		callback()
 	end
 
-	if self.ActiveTab then
-		self:SelectTab(self.ActiveTab)
-	end
+	self:_refreshTabVisuals()
 end
 
 function Window:_readConfig()
@@ -231,6 +230,7 @@ function Window:_readConfig()
 		self.Settings.ModuleColor = fromRecord(saved.Theme.ModuleColor, self.Settings.ModuleColor)
 		self.Settings.PanelColor = fromRecord(saved.Theme.PanelColor, self.Settings.PanelColor)
 		self.Settings.TextColor = fromRecord(saved.Theme.TextColor, self.Settings.TextColor)
+		self.Settings.IconColor = fromRecord(saved.Theme.IconColor, self.Settings.IconColor)
 	end
 end
 
@@ -315,7 +315,7 @@ function Window:_build()
 		Position = UDim2.fromOffset(10, 12),
 		BackgroundTransparency = 1,
 		Image = Library.Icons.Home,
-		ImageColor3 = self.Settings.TextColor,
+		ImageColor3 = self.Settings.IconColor,
 		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 7,
 	}, side)
@@ -346,7 +346,8 @@ function Window:_build()
 		Name = "Settings",
 		Size = UDim2.fromOffset(42, 42),
 		Position = UDim2.new(0.5, -21, 1, -54),
-		BackgroundColor3 = Color3.fromRGB(11, 12, 15),
+		BackgroundColor3 = self.Settings.IconColor,
+		BackgroundTransparency = 0.82,
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 8,
@@ -404,8 +405,8 @@ function Window:_build()
 
 	local content = make("Frame", {
 		Name = "Content",
-		Size = UDim2.new(1, -92, 1, -24),
-		Position = UDim2.fromOffset(82, 12),
+		Size = UDim2.new(1, -92, 1, -58),
+		Position = UDim2.fromOffset(82, 46),
 		BackgroundTransparency = 1,
 		ZIndex = 7,
 	}, main)
@@ -441,8 +442,8 @@ function Window:_build()
 	self:_makeDraggable(top)
 
 	self:_onTheme(function()
-		logo.ImageColor3 = self.Settings.TextColor
-		settingsIcon.ImageColor3 = self.Settings.MutedTextColor
+		logo.ImageColor3 = self.Settings.IconColor
+		settingsIcon.ImageColor3 = self.ActiveTab == self.SettingsTab and self.Settings.IconColor or self.Settings.MutedTextColor
 	end)
 
 	logoLine.Active = false
@@ -493,6 +494,7 @@ function Window:SaveConfig()
 			ModuleColor = colorRecord(self.Settings.ModuleColor),
 			PanelColor = colorRecord(self.Settings.PanelColor),
 			TextColor = colorRecord(self.Settings.TextColor),
+			IconColor = colorRecord(self.Settings.IconColor),
 		},
 	}
 end
@@ -526,8 +528,8 @@ function Window:CreateTab(name, icon)
 	local button = make("TextButton", {
 		Name = tab.Name .. "Tab",
 		Size = UDim2.fromOffset(54, 42),
-		BackgroundColor3 = Color3.fromRGB(15, 16, 21),
-		BackgroundTransparency = 1,
+		BackgroundColor3 = self.Settings.IconColor,
+		BackgroundTransparency = 0.84,
 		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 8,
@@ -575,14 +577,15 @@ function Window:CreateTab(name, icon)
 		ScrollBarThickness = 3,
 		ScrollBarImageColor3 = self.Settings.AccentColor,
 		CanvasSize = UDim2.fromOffset(0, 0),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ClipsDescendants = true,
 		ZIndex = 7,
 	}, page)
 	self:_theme(scroll, "ScrollBarImageColor3", "AccentColor")
 
 	local columnRow = make("Frame", {
 		Name = "Columns",
-		Size = UDim2.new(1, -8, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.new(1, -8, 0, 1),
 		BackgroundTransparency = 1,
 		ZIndex = 7,
 	}, scroll)
@@ -627,18 +630,19 @@ function Window:CreateTab(name, icon)
 
 	self:_connect(leftLayout:GetPropertyChangedSignal("AbsoluteContentSize"), updateCanvas)
 	self:_connect(rightLayout:GetPropertyChangedSignal("AbsoluteContentSize"), updateCanvas)
+	task.defer(updateCanvas)
 	self:_connect(button.MouseButton1Click, function()
 		self:SelectTab(tab)
 	end)
 	self:_connect(button.MouseEnter, function()
 		if self.ActiveTab ~= tab then
 			tween(button, {BackgroundTransparency = 0.72}, 0.16)
-			tween(iconImage, {ImageColor3 = self.Settings.TextColor}, 0.16)
+			tween(iconImage, {ImageColor3 = self.Settings.IconColor}, 0.16)
 		end
 	end)
 	self:_connect(button.MouseLeave, function()
 		if self.ActiveTab ~= tab then
-			tween(button, {BackgroundTransparency = 1}, 0.16)
+			tween(button, {BackgroundTransparency = 0.84}, 0.16)
 			tween(iconImage, {ImageColor3 = self.Settings.MutedTextColor}, 0.16)
 		end
 	end)
@@ -668,10 +672,11 @@ function Window:SelectTab(tab)
 		end
 
 		tween(other.Button, {
-			BackgroundTransparency = active and 0.18 or 1,
+			BackgroundColor3 = active and self.Settings.AccentColor or self.Settings.IconColor,
+			BackgroundTransparency = active and 0.18 or 0.84,
 		}, 0.14)
 		tween(other.IconImage, {
-			ImageColor3 = active and self.Settings.TextColor or self.Settings.MutedTextColor,
+			ImageColor3 = active and self.Settings.IconColor or self.Settings.MutedTextColor,
 			Size = active and UDim2.fromOffset(24, 24) or UDim2.fromOffset(22, 22),
 		}, 0.18)
 		tween(other.ActiveBar, {
@@ -694,16 +699,37 @@ function Window:SelectTab(tab)
 	if self.SettingsButton and self.SettingsTab then
 		local settingsActive = tab == self.SettingsTab
 		tween(self.SettingsButton, {
-			BackgroundTransparency = settingsActive and 0.12 or 0,
-			BackgroundColor3 = settingsActive and self.Settings.AccentColor or Color3.fromRGB(11, 12, 15),
+			BackgroundTransparency = settingsActive and 0.12 or 0.82,
+			BackgroundColor3 = settingsActive and self.Settings.AccentColor or self.Settings.IconColor,
 		}, 0.16)
 		tween(self.SettingsIcon, {
-			ImageColor3 = settingsActive and self.Settings.TextColor or self.Settings.MutedTextColor,
+			ImageColor3 = settingsActive and self.Settings.IconColor or self.Settings.MutedTextColor,
 			Size = settingsActive and UDim2.fromOffset(22, 22) or UDim2.fromOffset(20, 20),
 		}, 0.16)
 	end
 
 	self.ActiveTab = tab
+end
+
+function Window:_refreshTabVisuals()
+	for _, tab in ipairs(self.Tabs) do
+		local active = tab == self.ActiveTab
+		if tab.Button and tab.IconImage and tab.ActiveBar then
+			tab.Button.BackgroundColor3 = active and self.Settings.AccentColor or self.Settings.IconColor
+			tab.Button.BackgroundTransparency = active and 0.18 or 0.84
+			tab.IconImage.ImageColor3 = active and self.Settings.IconColor or self.Settings.MutedTextColor
+			tab.IconImage.Size = active and UDim2.fromOffset(24, 24) or UDim2.fromOffset(22, 22)
+			tab.ActiveBar.BackgroundTransparency = active and 0 or 1
+		end
+	end
+
+	if self.SettingsButton and self.SettingsIcon and self.SettingsTab then
+		local settingsActive = self.ActiveTab == self.SettingsTab
+		self.SettingsButton.BackgroundColor3 = settingsActive and self.Settings.AccentColor or self.Settings.IconColor
+		self.SettingsButton.BackgroundTransparency = settingsActive and 0.12 or 0.82
+		self.SettingsIcon.ImageColor3 = settingsActive and self.Settings.IconColor or self.Settings.MutedTextColor
+		self.SettingsIcon.Size = settingsActive and UDim2.fromOffset(22, 22) or UDim2.fromOffset(20, 20)
+	end
 end
 
 function Window:_setColorChannel(setting, channel, value)
@@ -730,6 +756,7 @@ function Window:_createSettingsTab()
 	local tab = self:CreateTab("Settings", Library.Icons.Settings)
 	self.SettingsTab = tab
 	tab.Button.Visible = false
+	tab.Button.Size = UDim2.fromOffset(0, 0)
 	tab.Page.Visible = false
 	tab.Page.GroupTransparency = 1
 	tab.ActiveBar.BackgroundTransparency = 1
@@ -751,6 +778,17 @@ function Window:_createSettingsTab()
 		self:_setColorChannel("AccentColor", "B", value)
 	end)
 
+	local icons = tab:CreateModule("Icons")
+	icons:AddSlider("Icon Red", 0, 255, math.floor(self.Settings.IconColor.R * 255 + 0.5), function(value)
+		self:_setColorChannel("IconColor", "R", value)
+	end)
+	icons:AddSlider("Icon Green", 0, 255, math.floor(self.Settings.IconColor.G * 255 + 0.5), function(value)
+		self:_setColorChannel("IconColor", "G", value)
+	end)
+	icons:AddSlider("Icon Blue", 0, 255, math.floor(self.Settings.IconColor.B * 255 + 0.5), function(value)
+		self:_setColorChannel("IconColor", "B", value)
+	end)
+
 	local surface = tab:CreateModule("Surface")
 	surface:AddSlider("Glass", 0, 1, self.Settings.Blur and 0.18 or 0.04, function(value)
 		self.Main.BackgroundTransparency = value
@@ -761,6 +799,7 @@ function Window:_createSettingsTab()
 		self.Settings.ModuleColor = Color3.fromRGB(13, 14, 18)
 		self.Settings.PanelColor = Color3.fromRGB(18, 19, 24)
 		self.Settings.TextColor = Color3.fromRGB(242, 244, 248)
+		self.Settings.IconColor = Color3.fromRGB(242, 244, 248)
 		self:_applyTheme()
 		self:SaveConfig()
 	end)
@@ -1061,8 +1100,14 @@ function Module:AddSlider(label, min, max, defaultValue, callback)
 		value = math.clamp(tonumber(newValue) or min, min, max)
 		local p = percent()
 		valueText.Text = string.format("%.2f", value)
-		tween(fill, {Size = UDim2.fromScale(p, 1)}, 0.08)
-		tween(knob, {Position = UDim2.new(p, -7, 0.5, -7)}, 0.08)
+
+		if dragging and not silent then
+			fill.Size = UDim2.fromScale(p, 1)
+			knob.Position = UDim2.new(p, -7, 0.5, -7)
+		else
+			tween(fill, {Size = UDim2.fromScale(p, 1)}, 0.08)
+			tween(knob, {Position = UDim2.new(p, -7, 0.5, -7)}, 0.08)
+		end
 
 		if key then
 			self.Window:_setControlValue(key, value)

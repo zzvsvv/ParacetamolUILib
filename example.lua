@@ -14,6 +14,7 @@ local Window = Library:CreateWindow("Paracetamol", {
 	ModuleColor = Color3.fromRGB(12, 13, 16),
 	PanelColor = Color3.fromRGB(16, 17, 21),
 	TextColor = Color3.fromRGB(235, 238, 242),
+	IconColor = Color3.fromRGB(245, 247, 255),
 	Saveable = true,
 	SaveKey = "ParacetamolExample",
 	Blur = true,
