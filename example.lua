@@ -19,9 +19,9 @@ local Window = Library:CreateWindow("Paracetamol", {
 	Blur = true,
 })
 
-local MainTab = Window:CreateTab("Main", "MAIN")
-local PlayerTab = Window:CreateTab("Player", "P")
-local VisualTab = Window:CreateTab("Visuals", "X")
+local MainTab = Window:CreateTab("Main", "Home")
+local PlayerTab = Window:CreateTab("Player", "User")
+local VisualTab = Window:CreateTab("Visuals", "Misc")
 
 local espModule = VisualTab:CreateModule("ESP")
 espModule:AddToggle("Enabled", false, function(value)

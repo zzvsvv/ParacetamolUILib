@@ -4,7 +4,6 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -16,14 +15,24 @@ Library.__index = Library
 
 Library.Defaults = {
 	AccentColor = Color3.fromRGB(255, 54, 91),
-	BackgroundColor = Color3.fromRGB(7, 8, 10),
-	ModuleColor = Color3.fromRGB(12, 13, 16),
-	PanelColor = Color3.fromRGB(16, 17, 21),
-	TextColor = Color3.fromRGB(235, 238, 242),
-	MutedTextColor = Color3.fromRGB(132, 137, 146),
+	BackgroundColor = Color3.fromRGB(8, 9, 12),
+	ModuleColor = Color3.fromRGB(13, 14, 18),
+	PanelColor = Color3.fromRGB(18, 19, 24),
+	TextColor = Color3.fromRGB(242, 244, 248),
+	MutedTextColor = Color3.fromRGB(150, 155, 166),
 	Saveable = true,
 	SaveKey = "ParacetamolConfig",
 	Blur = true,
+}
+
+Library.Icons = {
+	User = "rbxassetid://115490898912498",
+	Home = "rbxassetid://106563839778007",
+	Gun = "rbxassetid://140567533638263",
+	Settings = "rbxassetid://84003076166210",
+	Misc = "rbxassetid://106053032870442",
+	Code = "rbxassetid://90816308792023",
+	Terminal = "rbxassetid://113638765567202",
 }
 
 local Window = {}
@@ -75,10 +84,27 @@ local function stroke(parent, color, transparency, thickness)
 end
 
 local function tween(obj, props, duration)
-	local info = TweenInfo.new(duration or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local info = TweenInfo.new(duration or 0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 	local tw = TweenService:Create(obj, info, props)
 	tw:Play()
 	return tw
+end
+
+local function assetId(value)
+	if typeof(value) == "number" then
+		return "rbxassetid://" .. tostring(value)
+	end
+
+	value = tostring(value or "")
+	if value:find("rbxassetid://", 1, true) then
+		return value
+	end
+
+	if tonumber(value) then
+		return "rbxassetid://" .. value
+	end
+
+	return Library.Icons[value] or Library.Icons.Misc
 end
 
 local function colorRecord(color)
@@ -153,6 +179,7 @@ function Library:CreateWindow(title, options)
 
 	window:_readConfig()
 	window:_build()
+	window:_createSettingsTab()
 	return window
 end
 
@@ -213,20 +240,6 @@ function Window:_build()
 		oldGui:Destroy()
 	end
 
-	local oldBlur = Lighting:FindFirstChild("ParacetamolUILibBlur")
-	if oldBlur then
-		oldBlur:Destroy()
-	end
-
-	local blur
-	if self.Settings.Blur then
-		blur = make("BlurEffect", {
-			Name = "ParacetamolUILibBlur",
-			Size = 0,
-		}, Lighting)
-		tween(blur, {Size = 14}, 0.25)
-	end
-
 	local gui = make("ScreenGui", {
 		Name = "ParacetamolUILib",
 		IgnoreGuiInset = true,
@@ -235,48 +248,75 @@ function Window:_build()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, PlayerGui)
 
-	local dim = make("Frame", {
-		Name = "Dim",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = 0.32,
-		BorderSizePixel = 0,
-		ZIndex = 1,
-	}, gui)
-
 	local main = make("Frame", {
 		Name = "Main",
 		Size = UDim2.fromOffset(760, 520),
 		Position = UDim2.new(0.5, -380, 0.5, -260),
 		BackgroundColor3 = self.Settings.BackgroundColor,
-		BackgroundTransparency = 0.05,
+		BackgroundTransparency = self.Settings.Blur and 0.18 or 0.04,
 		BorderSizePixel = 0,
 		ZIndex = 5,
 	}, gui)
 	corner(main, 18)
-	stroke(main, Color3.fromRGB(65, 24, 34), 0.15, 1)
+	stroke(main, Color3.fromRGB(255, 58, 95), 0.68, 1)
 	self:_theme(main, "BackgroundColor3", "BackgroundColor")
+
+	make("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 25, 31)),
+			ColorSequenceKeypoint.new(0.45, Color3.fromRGB(8, 9, 12)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(19, 10, 14)),
+		}),
+		Rotation = 35,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.04),
+			NumberSequenceKeypoint.new(0.62, 0.16),
+			NumberSequenceKeypoint.new(1, 0.08),
+		}),
+	}, main)
+
+	local glow = make("Frame", {
+		Name = "Glow",
+		Size = UDim2.new(1, 22, 1, 22),
+		Position = UDim2.fromOffset(-11, -11),
+		BackgroundColor3 = self.Settings.AccentColor,
+		BackgroundTransparency = 0.9,
+		BorderSizePixel = 0,
+		ZIndex = 4,
+	}, main)
+	corner(glow, 22)
+	self:_theme(glow, "BackgroundColor3", "AccentColor")
+
+	main.Size = UDim2.fromOffset(724, 492)
+	main.Position = UDim2.new(0.5, -362, 0.5, -246)
+	main.BackgroundTransparency = 1
+	glow.BackgroundTransparency = 1
+	tween(main, {
+		Size = UDim2.fromOffset(760, 520),
+		Position = UDim2.new(0.5, -380, 0.5, -260),
+		BackgroundTransparency = self.Settings.Blur and 0.18 or 0.04,
+	}, 0.38)
+	tween(glow, {BackgroundTransparency = 0.9}, 0.45)
 
 	local side = make("Frame", {
 		Name = "Sidebar",
 		Size = UDim2.new(0, 74, 1, 0),
-		BackgroundColor3 = Color3.fromRGB(5, 6, 8),
-		BackgroundTransparency = 0.08,
+		BackgroundColor3 = Color3.fromRGB(5, 6, 9),
+		BackgroundTransparency = 0.2,
 		BorderSizePixel = 0,
 		ZIndex = 6,
 	}, main)
 	corner(side, 18)
-	stroke(side, Color3.fromRGB(50, 18, 26), 0.35, 1)
+	stroke(side, Color3.fromRGB(255, 58, 95), 0.82, 1)
 
-	local logo = make("TextLabel", {
+	local logo = make("ImageLabel", {
 		Name = "Logo",
 		Size = UDim2.fromOffset(54, 54),
 		Position = UDim2.fromOffset(10, 12),
 		BackgroundTransparency = 1,
-		Text = "S",
-		TextColor3 = Color3.fromRGB(245, 246, 248),
-		Font = Enum.Font.GothamBlack,
-		TextSize = 32,
+		Image = Library.Icons.Home,
+		ImageColor3 = self.Settings.TextColor,
+		ScaleType = Enum.ScaleType.Fit,
 		ZIndex = 7,
 	}, side)
 
@@ -307,14 +347,21 @@ function Window:_build()
 		Size = UDim2.fromOffset(42, 42),
 		Position = UDim2.new(0.5, -21, 1, -54),
 		BackgroundColor3 = Color3.fromRGB(11, 12, 15),
-		Text = "O",
-		TextColor3 = self.Settings.MutedTextColor,
-		Font = Enum.Font.GothamBold,
-		TextSize = 18,
+		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 8,
 	}, side)
 	corner(settingsButton, 10)
+	local settingsIcon = make("ImageLabel", {
+		Size = UDim2.fromOffset(20, 20),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Image = Library.Icons.Settings,
+		ImageColor3 = self.Settings.MutedTextColor,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 9,
+	}, settingsButton)
 
 	local top = make("Frame", {
 		Name = "TopDrag",
@@ -364,16 +411,19 @@ function Window:_build()
 	}, main)
 
 	self.Gui = gui
-	self.Blur = blur
-	self.Dim = dim
+	self.Glow = glow
 	self.Main = main
 	self.Sidebar = side
 	self.TabsHolder = tabsHolder
 	self.TabContent = content
 	self.TabsLayout = tabsLayout
+	self.SettingsButton = settingsButton
+	self.SettingsIcon = settingsIcon
 
 	self:_connect(settingsButton.MouseButton1Click, function()
-		self:OpenSettingsPanel()
+		if self.SettingsTab then
+			self:SelectTab(self.SettingsTab)
+		end
 	end)
 
 	self:_connect(minimize.MouseButton1Click, function()
@@ -386,19 +436,15 @@ function Window:_build()
 
 	self:_connect(close.MouseButton1Click, function()
 		self.Gui.Enabled = false
-		if self.Blur then
-			tween(self.Blur, {Size = 0}, 0.18)
-		end
 	end)
 
 	self:_makeDraggable(top)
 
 	self:_onTheme(function()
-		logo.TextColor3 = self.Settings.TextColor
-		settingsButton.TextColor3 = self.Settings.MutedTextColor
+		logo.ImageColor3 = self.Settings.TextColor
+		settingsIcon.ImageColor3 = self.Settings.MutedTextColor
 	end)
 
-	dim.Active = false
 	logoLine.Active = false
 end
 
@@ -468,10 +514,10 @@ function Window:_setControlValue(key, value)
 end
 
 function Window:CreateTab(name, icon)
-	local icons = {"MAIN", "X", "->", "[]", "P", "K", "SET", "()", "O"}
+	local icons = {Library.Icons.Home, Library.Icons.Gun, Library.Icons.User, Library.Icons.Misc, Library.Icons.Code, Library.Icons.Terminal}
 	local tab = setmetatable({
 		Name = name or "Tab",
-		Icon = icon or icons[(#self.Tabs % #icons) + 1],
+		Icon = assetId(icon or icons[(#self.Tabs % #icons) + 1]),
 		Window = self,
 		Modules = {},
 		NextColumn = 1,
@@ -480,16 +526,25 @@ function Window:CreateTab(name, icon)
 	local button = make("TextButton", {
 		Name = tab.Name .. "Tab",
 		Size = UDim2.fromOffset(54, 42),
-		BackgroundColor3 = Color3.fromRGB(9, 10, 13),
+		BackgroundColor3 = Color3.fromRGB(15, 16, 21),
 		BackgroundTransparency = 1,
-		Text = tab.Icon,
-		TextColor3 = self.Settings.MutedTextColor,
-		Font = Enum.Font.GothamBold,
-		TextSize = tab.Icon == "MAIN" and 9 or 15,
+		Text = "",
 		AutoButtonColor = false,
 		ZIndex = 8,
 	}, self.TabsHolder)
 	corner(button, 10)
+
+	local iconImage = make("ImageLabel", {
+		Name = "Icon",
+		Size = UDim2.fromOffset(22, 22),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Image = tab.Icon,
+		ImageColor3 = self.Settings.MutedTextColor,
+		ScaleType = Enum.ScaleType.Fit,
+		ZIndex = 9,
+	}, button)
 
 	local activeBar = make("Frame", {
 		Size = UDim2.fromOffset(3, 30),
@@ -502,10 +557,12 @@ function Window:CreateTab(name, icon)
 	corner(activeBar, 3)
 	self:_theme(activeBar, "BackgroundColor3", "AccentColor")
 
-	local page = make("Frame", {
+	local page = make("CanvasGroup", {
 		Name = tab.Name .. "Page",
 		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(14, 0),
 		BackgroundTransparency = 1,
+		GroupTransparency = 1,
 		Visible = false,
 		ZIndex = 7,
 	}, self.TabContent)
@@ -573,8 +630,21 @@ function Window:CreateTab(name, icon)
 	self:_connect(button.MouseButton1Click, function()
 		self:SelectTab(tab)
 	end)
+	self:_connect(button.MouseEnter, function()
+		if self.ActiveTab ~= tab then
+			tween(button, {BackgroundTransparency = 0.72}, 0.16)
+			tween(iconImage, {ImageColor3 = self.Settings.TextColor}, 0.16)
+		end
+	end)
+	self:_connect(button.MouseLeave, function()
+		if self.ActiveTab ~= tab then
+			tween(button, {BackgroundTransparency = 1}, 0.16)
+			tween(iconImage, {ImageColor3 = self.Settings.MutedTextColor}, 0.16)
+		end
+	end)
 
 	tab.Button = button
+	tab.IconImage = iconImage
 	tab.ActiveBar = activeBar
 	tab.Page = page
 	tab.Scroll = scroll
@@ -592,121 +662,114 @@ end
 function Window:SelectTab(tab)
 	for _, other in ipairs(self.Tabs) do
 		local active = other == tab
-		other.Page.Visible = active
+		if active then
+			other.Page.Visible = true
+			other.Page.Position = UDim2.fromOffset(14, 0)
+		end
+
 		tween(other.Button, {
-			BackgroundTransparency = active and 0 or 1,
-			TextColor3 = active and self.Settings.TextColor or self.Settings.MutedTextColor,
+			BackgroundTransparency = active and 0.18 or 1,
 		}, 0.14)
+		tween(other.IconImage, {
+			ImageColor3 = active and self.Settings.TextColor or self.Settings.MutedTextColor,
+			Size = active and UDim2.fromOffset(24, 24) or UDim2.fromOffset(22, 22),
+		}, 0.18)
 		tween(other.ActiveBar, {
 			BackgroundTransparency = active and 0 or 1,
 		}, 0.14)
-	end
-	self.ActiveTab = tab
-end
+		tween(other.Page, {
+			GroupTransparency = active and 0 or 1,
+			Position = active and UDim2.fromOffset(0, 0) or UDim2.fromOffset(-10, 0),
+		}, 0.22)
 
-function Window:OpenSettingsPanel()
-	if self.SettingsPanel and self.SettingsPanel.Parent then
-		self.SettingsPanel.Visible = not self.SettingsPanel.Visible
-		return
-	end
-
-	local panel = make("Frame", {
-		Name = "SettingsPanel",
-		Size = UDim2.fromOffset(300, 286),
-		Position = UDim2.new(1, -312, 0, 52),
-		BackgroundColor3 = self.Settings.ModuleColor,
-		BorderSizePixel = 0,
-		ZIndex = 50,
-	}, self.Main)
-	corner(panel, 12)
-	stroke(panel, Color3.fromRGB(86, 31, 44), 0.22, 1)
-	self:_theme(panel, "BackgroundColor3", "ModuleColor")
-	self.SettingsPanel = panel
-
-	local title = text(panel, "Settings", 16, true)
-	title.Size = UDim2.new(1, -20, 0, 34)
-	title.Position = UDim2.fromOffset(10, 8)
-	title.ZIndex = 51
-	self:_theme(title, "TextColor3", "TextColor")
-
-	local list = make("Frame", {
-		Size = UDim2.new(1, -20, 1, -54),
-		Position = UDim2.fromOffset(10, 46),
-		BackgroundTransparency = 1,
-		ZIndex = 51,
-	}, panel)
-
-	make("UIListLayout", {
-		Padding = UDim.new(0, 8),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, list)
-
-	local function editor(label, setting)
-		local row = make("Frame", {
-			Size = UDim2.new(1, 0, 0, 46),
-			BackgroundColor3 = self.Settings.PanelColor,
-			BorderSizePixel = 0,
-			ZIndex = 52,
-		}, list)
-		corner(row, 8)
-		self:_theme(row, "BackgroundColor3", "PanelColor")
-
-		local name = text(row, label, 12, true)
-		name.Size = UDim2.fromOffset(92, 1)
-		name.Position = UDim2.fromOffset(9, 0)
-		name.ZIndex = 53
-		self:_theme(name, "TextColor3", "TextColor")
-
-		local c = self.Settings[setting]
-		local values = {
-			R = math.floor(c.R * 255 + 0.5),
-			G = math.floor(c.G * 255 + 0.5),
-			B = math.floor(c.B * 255 + 0.5),
-		}
-
-		local boxes = make("Frame", {
-			Size = UDim2.new(1, -110, 0, 28),
-			Position = UDim2.fromOffset(102, 9),
-			BackgroundTransparency = 1,
-			ZIndex = 53,
-		}, row)
-
-		make("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, 5),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}, boxes)
-
-		for _, channel in ipairs({"R", "G", "B"}) do
-			local box = make("TextBox", {
-				Size = UDim2.new(0.333, -4, 1, 0),
-				BackgroundColor3 = Color3.fromRGB(9, 10, 12),
-				Text = tostring(values[channel]),
-				TextColor3 = self.Settings.TextColor,
-				PlaceholderText = channel,
-				Font = Enum.Font.GothamMedium,
-				TextSize = 11,
-				ClearTextOnFocus = false,
-				ZIndex = 54,
-			}, boxes)
-			corner(box, 7)
-			self:_theme(box, "TextColor3", "TextColor")
-
-			self:_connect(box.FocusLost, function()
-				local number = math.clamp(tonumber(box.Text) or values[channel], 0, 255)
-				values[channel] = number
-				box.Text = tostring(number)
-				self.Settings[setting] = Color3.fromRGB(values.R, values.G, values.B)
-				self:_applyTheme()
-				self:SaveConfig()
+		if not active then
+			task.delay(0.23, function()
+				if self.ActiveTab ~= other then
+					other.Page.Visible = false
+				end
 			end)
 		end
 	end
 
-	editor("Accent", "AccentColor")
-	editor("Background", "BackgroundColor")
-	editor("Module", "ModuleColor")
-	editor("Text", "TextColor")
+	if self.SettingsButton and self.SettingsTab then
+		local settingsActive = tab == self.SettingsTab
+		tween(self.SettingsButton, {
+			BackgroundTransparency = settingsActive and 0.12 or 0,
+			BackgroundColor3 = settingsActive and self.Settings.AccentColor or Color3.fromRGB(11, 12, 15),
+		}, 0.16)
+		tween(self.SettingsIcon, {
+			ImageColor3 = settingsActive and self.Settings.TextColor or self.Settings.MutedTextColor,
+			Size = settingsActive and UDim2.fromOffset(22, 22) or UDim2.fromOffset(20, 20),
+		}, 0.16)
+	end
+
+	self.ActiveTab = tab
+end
+
+function Window:_setColorChannel(setting, channel, value)
+	local current = self.Settings[setting]
+	local r = math.floor(current.R * 255 + 0.5)
+	local g = math.floor(current.G * 255 + 0.5)
+	local b = math.floor(current.B * 255 + 0.5)
+
+	if channel == "R" then
+		r = value
+	elseif channel == "G" then
+		g = value
+	else
+		b = value
+	end
+
+	self.Settings[setting] = Color3.fromRGB(r, g, b)
+	self:_applyTheme()
+	self:SaveConfig()
+end
+
+function Window:_createSettingsTab()
+	local previous = self.ActiveTab
+	local tab = self:CreateTab("Settings", Library.Icons.Settings)
+	self.SettingsTab = tab
+	tab.Button.Visible = false
+	tab.Page.Visible = false
+	tab.Page.GroupTransparency = 1
+	tab.ActiveBar.BackgroundTransparency = 1
+
+	if previous then
+		self:SelectTab(previous)
+	else
+		self.ActiveTab = nil
+	end
+
+	local accent = tab:CreateModule("Accent")
+	accent:AddSlider("Red", 0, 255, math.floor(self.Settings.AccentColor.R * 255 + 0.5), function(value)
+		self:_setColorChannel("AccentColor", "R", value)
+	end)
+	accent:AddSlider("Green", 0, 255, math.floor(self.Settings.AccentColor.G * 255 + 0.5), function(value)
+		self:_setColorChannel("AccentColor", "G", value)
+	end)
+	accent:AddSlider("Blue", 0, 255, math.floor(self.Settings.AccentColor.B * 255 + 0.5), function(value)
+		self:_setColorChannel("AccentColor", "B", value)
+	end)
+
+	local surface = tab:CreateModule("Surface")
+	surface:AddSlider("Glass", 0, 1, self.Settings.Blur and 0.18 or 0.04, function(value)
+		self.Main.BackgroundTransparency = value
+	end)
+	surface:AddButton("Reset Theme", function()
+		self.Settings.AccentColor = Color3.fromRGB(255, 54, 91)
+		self.Settings.BackgroundColor = Color3.fromRGB(8, 9, 12)
+		self.Settings.ModuleColor = Color3.fromRGB(13, 14, 18)
+		self.Settings.PanelColor = Color3.fromRGB(18, 19, 24)
+		self.Settings.TextColor = Color3.fromRGB(242, 244, 248)
+		self:_applyTheme()
+		self:SaveConfig()
+	end)
+end
+
+function Window:OpenSettingsPanel()
+	if self.SettingsTab then
+		self:SelectTab(self.SettingsTab)
+	end
 end
 
 function Window:Destroy()
@@ -721,9 +784,6 @@ function Window:Destroy()
 		end
 	end
 
-	if self.Blur then
-		self.Blur:Destroy()
-	end
 	if self.Gui then
 		self.Gui:Destroy()
 	end
@@ -747,13 +807,25 @@ function Tab:CreateModule(title)
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = self.Window.Settings.ModuleColor,
-		BackgroundTransparency = 0.03,
+		BackgroundTransparency = 0.14,
 		BorderSizePixel = 0,
 		ZIndex = 10,
 	}, column)
 	corner(frame, 10)
-	stroke(frame, Color3.fromRGB(67, 24, 34), 0.2, 1)
+	stroke(frame, Color3.fromRGB(255, 58, 95), 0.78, 1)
 	self.Window:_theme(frame, "BackgroundColor3", "ModuleColor")
+
+	make("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 26, 32)),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 11, 14)),
+		}),
+		Rotation = 90,
+		Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.12),
+			NumberSequenceKeypoint.new(1, 0.34),
+		}),
+	}, frame)
 
 	make("UIPadding", {
 		PaddingTop = UDim.new(0, 9),
