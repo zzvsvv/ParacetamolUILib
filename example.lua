@@ -1,66 +1,81 @@
 -- Example LocalScript / executor file.
--- Loads ParacetamolUILib from GitHub and creates a demo window.
+-- Loads ParacetamolUILib from GitHub and creates a small test window.
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/zzvsvv/ParacetamolUILib/refs/heads/main/ParacetamolUILib.lua"))()
 
-local Window = Library:CreateWindow("Paracetamol UI Example", {
-	AccentColor = Color3.fromRGB(0, 170, 255),
-	BackgroundColor = Color3.fromRGB(45, 45, 45),
-	ModuleColor = Color3.fromRGB(55, 55, 55),
-	TextColor = Color3.fromRGB(235, 235, 235),
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+
+local Window = Library:CreateWindow("Paracetamol", {
+	AccentColor = Color3.fromRGB(255, 54, 91),
+	BackgroundColor = Color3.fromRGB(7, 8, 10),
+	ModuleColor = Color3.fromRGB(12, 13, 16),
+	PanelColor = Color3.fromRGB(16, 17, 21),
+	TextColor = Color3.fromRGB(235, 238, 242),
 	Saveable = true,
 	SaveKey = "ParacetamolExample",
+	Blur = true,
 })
 
-local CombatTab = Window:CreateTab("Combat")
-local GeneralTab = Window:CreateTab("General")
-local VisualTab = Window:CreateTab("Visuals")
+local MainTab = Window:CreateTab("Main", "MAIN")
+local PlayerTab = Window:CreateTab("Player", "P")
+local VisualTab = Window:CreateTab("Visuals", "X")
 
-local combatModule = CombatTab:CreateModule("Combat Settings")
-combatModule:AddToggle("Enabled", true, function(value)
-	print("Combat enabled:", value)
+local espModule = VisualTab:CreateModule("ESP")
+espModule:AddToggle("Enabled", false, function(value)
+	print("ESP:", value)
 end)
-combatModule:AddSlider("Damage", 0, 100, 50, function(value)
-	print("Damage:", value)
+espModule:AddDropdown("Mode", {"Box", "Name", "Full"}, true, function(values)
+	print("ESP modes:", table.concat(values, ", "))
 end)
-combatModule:AddDropdown("Weapon", {"Sword", "Bow", "Staff"}, false, function(value)
-	print("Weapon:", value)
-end)
-combatModule:AddButton("Reset", function()
-	print("Reset clicked")
+espModule:AddSlider("Distance", 100, 5000, 1200, function(value)
+	print("ESP distance:", value)
 end)
 
-local aimModule = CombatTab:CreateModule("Aim Assist")
-aimModule:AddToggle("Enabled", false, function(value)
-	print("Aim assist:", value)
+local brightnessModule = VisualTab:CreateModule("Brightness")
+brightnessModule:AddToggle("Enabled", false, function(value)
+	if value then
+		Lighting.Brightness = 4
+	end
 end)
-aimModule:AddSlider("Smoothness", 0, 1, 0.35, function(value)
-	print("Smoothness:", value)
+brightnessModule:AddSlider("Change Brightness", 0, 10, Lighting.Brightness, function(value)
+	Lighting.Brightness = value
 end)
-aimModule:AddDropdown("Target Part", {"Head", "Torso", "Closest"}, false, function(value)
-	print("Target part:", value)
-end)
-
-local filterModule = GeneralTab:CreateModule("Filters")
-filterModule:AddToggle("Enabled", true, function(value)
-	print("Filters enabled:", value)
-end)
-filterModule:AddDropdown("Teams", {"Red", "Blue", "Green"}, true, function(selected)
-	print("Teams:", table.concat(selected, ", "))
-end)
-filterModule:AddSlider("Opacity", 0, 1, 0.5, function(value)
-	print("Opacity:", value)
+brightnessModule:AddButton("Reset Brightness", function()
+	Lighting.Brightness = 2
 end)
 
-local visualsModule = VisualTab:CreateModule("Visual Settings")
-visualsModule:AddToggle("Enabled", true, function(value)
-	print("Visuals enabled:", value)
+local movementModule = PlayerTab:CreateModule("Movement")
+movementModule:AddToggle("Enabled", true, function(value)
+	print("Movement controls:", value)
 end)
-visualsModule:AddDropdown("Style", {"Default", "Soft", "Sharp"}, false, function(value)
-	print("Style:", value)
+movementModule:AddSlider("Walkspeed", 16, 100, 16, function(value)
+	local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.WalkSpeed = value
+	end
 end)
-visualsModule:AddSlider("Brightness", 0, 10, 4, function(value)
-	print("Brightness:", value)
+movementModule:AddSlider("Jumppower", 50, 200, 50, function(value)
+	local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.UseJumpPower = true
+		humanoid.JumpPower = value
+	end
+end)
+
+local testModule = MainTab:CreateModule("Module")
+testModule:AddToggle("Enabled", true, function(value)
+	print("Test module:", value)
+end)
+testModule:AddSlider("Slider", 0, 1, 0.35, function(value)
+	print("Slider:", value)
+end)
+testModule:AddDropdown("Enum", {"Enum", "Enum2", "Enum3"}, false, function(value)
+	print("Enum:", value)
 end)
 
 Window:LoadConfig()

@@ -1,10 +1,10 @@
 -- ParacetamolUILib
--- Client-side Roblox Luau UI library.
--- Designed for LocalScripts / executors. Persistent test saving uses _G.
+-- Client-side Roblox Luau UI library. Use from a LocalScript or executor loadstring.
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -15,12 +15,15 @@ local Library = {}
 Library.__index = Library
 
 Library.Defaults = {
-	AccentColor = Color3.fromRGB(0, 170, 255),
-	BackgroundColor = Color3.fromRGB(45, 45, 45),
-	ModuleColor = Color3.fromRGB(55, 55, 55),
-	TextColor = Color3.fromRGB(235, 235, 235),
+	AccentColor = Color3.fromRGB(255, 54, 91),
+	BackgroundColor = Color3.fromRGB(7, 8, 10),
+	ModuleColor = Color3.fromRGB(12, 13, 16),
+	PanelColor = Color3.fromRGB(16, 17, 21),
+	TextColor = Color3.fromRGB(235, 238, 242),
+	MutedTextColor = Color3.fromRGB(132, 137, 146),
 	Saveable = true,
 	SaveKey = "ParacetamolConfig",
+	Blur = true,
 }
 
 local Window = {}
@@ -32,9 +35,6 @@ Tab.__index = Tab
 local Module = {}
 Module.__index = Module
 
-local Control = {}
-Control.__index = Control
-
 local function cloneTable(source)
 	local copy = {}
 	for key, value in pairs(source or {}) do
@@ -43,7 +43,7 @@ local function cloneTable(source)
 	return copy
 end
 
-local function mergeOptions(base, overrides)
+local function merge(base, overrides)
 	local result = cloneTable(base)
 	for key, value in pairs(overrides or {}) do
 		result[key] = value
@@ -52,36 +52,36 @@ local function mergeOptions(base, overrides)
 end
 
 local function make(className, props, parent)
-	local instance = Instance.new(className)
+	local obj = Instance.new(className)
 	for key, value in pairs(props or {}) do
-		instance[key] = value
+		obj[key] = value
 	end
-	instance.Parent = parent
-	return instance
+	obj.Parent = parent
+	return obj
 end
 
-local function addCorner(parent, radius)
+local function corner(parent, radius)
 	return make("UICorner", {
 		CornerRadius = UDim.new(0, radius or 8),
 	}, parent)
 end
 
-local function addStroke(parent, color, transparency, thickness)
+local function stroke(parent, color, transparency, thickness)
 	return make("UIStroke", {
-		Color = color or Color3.fromRGB(100, 100, 100),
+		Color = color or Color3.fromRGB(65, 67, 74),
 		Transparency = transparency or 0.45,
 		Thickness = thickness or 1,
 	}, parent)
 end
 
-local function tween(instance, props, duration)
+local function tween(obj, props, duration)
 	local info = TweenInfo.new(duration or 0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local tweenObject = TweenService:Create(instance, info, props)
-	tweenObject:Play()
-	return tweenObject
+	local tw = TweenService:Create(obj, info, props)
+	tw:Play()
+	return tw
 end
 
-local function colorToRecord(color)
+local function colorRecord(color)
 	return {
 		R = math.floor(color.R * 255 + 0.5),
 		G = math.floor(color.G * 255 + 0.5),
@@ -89,11 +89,10 @@ local function colorToRecord(color)
 	}
 end
 
-local function recordToColor(record, fallback)
+local function fromRecord(record, fallback)
 	if typeof(record) ~= "table" then
 		return fallback
 	end
-
 	return Color3.fromRGB(
 		math.clamp(tonumber(record.R) or 0, 0, 255),
 		math.clamp(tonumber(record.G) or 0, 0, 255),
@@ -101,40 +100,43 @@ local function recordToColor(record, fallback)
 	)
 end
 
-local function createText(parent, text, size, bold)
+local function safeCall(callback, ...)
+	if not callback then
+		return
+	end
+
+	local args = table.pack(...)
+	task.spawn(function()
+		local ok, err = pcall(callback, table.unpack(args, 1, args.n))
+		if not ok then
+			warn("[ParacetamolUILib] Callback error:", err)
+		end
+	end)
+end
+
+local function text(parent, value, size, bold)
 	return make("TextLabel", {
 		BackgroundTransparency = 1,
-		Text = text,
-		TextColor3 = Color3.fromRGB(235, 235, 235),
-		Font = bold and Enum.Font.GothamBold or Enum.Font.GothamSemibold,
-		TextSize = size or 14,
+		Text = value or "",
+		TextColor3 = Color3.fromRGB(235, 238, 242),
+		Font = bold and Enum.Font.GothamBold or Enum.Font.GothamMedium,
+		TextSize = size or 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 	}, parent)
 end
 
-local function safeCallback(callback, ...)
-	if callback then
-		local args = table.pack(...)
-		task.spawn(function()
-			local ok, err = pcall(callback, table.unpack(args, 1, args.n))
-			if not ok then
-				warn("[ParacetamolUILib] Callback error:", err)
-			end
-		end)
-	end
-end
-
 function Library:Init(options)
-	self.Defaults = mergeOptions(self.Defaults, options or {})
+	self.Defaults = merge(self.Defaults, options or {})
 	return self
 end
 
 function Library:CreateWindow(title, options)
-	local settings = mergeOptions(self.Defaults, options or {})
+	local settings = merge(self.Defaults, options or {})
 
 	local window = setmetatable({
-		Title = title or "Window",
+		Title = title or "Paracetamol",
 		Settings = settings,
 		Saveable = settings.Saveable == true,
 		SaveKey = settings.SaveKey or "ParacetamolConfig",
@@ -145,11 +147,11 @@ function Library:CreateWindow(title, options)
 		ThemeCallbacks = {},
 		ControlValues = {},
 		ActiveTab = nil,
-		Minimized = false,
 		Destroyed = false,
+		Minimized = false,
 	}, Window)
 
-	window:_loadRawConfig()
+	window:_readConfig()
 	window:_build()
 	return window
 end
@@ -160,19 +162,23 @@ function Window:_connect(signal, callback)
 	return connection
 end
 
-function Window:_theme(instance, property, settingName)
+function Window:_theme(obj, property, setting)
 	table.insert(self.ThemeObjects, {
-		Instance = instance,
+		Object = obj,
 		Property = property,
-		SettingName = settingName,
+		Setting = setting,
 	})
-	instance[property] = self.Settings[settingName]
+	obj[property] = self.Settings[setting]
+end
+
+function Window:_onTheme(callback)
+	table.insert(self.ThemeCallbacks, callback)
 end
 
 function Window:_applyTheme()
 	for _, item in ipairs(self.ThemeObjects) do
-		if item.Instance and item.Instance.Parent and self.Settings[item.SettingName] then
-			item.Instance[item.Property] = self.Settings[item.SettingName]
+		if item.Object and item.Object.Parent and self.Settings[item.Setting] then
+			item.Object[item.Property] = self.Settings[item.Setting]
 		end
 	end
 
@@ -185,30 +191,40 @@ function Window:_applyTheme()
 	end
 end
 
-function Window:_onThemeChanged(callback)
-	table.insert(self.ThemeCallbacks, callback)
-end
-
-function Window:_loadRawConfig()
+function Window:_readConfig()
 	local saved = _G.ParacetamolUILibConfigs[self.SaveKey]
 	if not saved then
 		return
 	end
 
 	self.ControlValues = cloneTable(saved.Controls or {})
-
 	if typeof(saved.Theme) == "table" then
-		self.Settings.AccentColor = recordToColor(saved.Theme.AccentColor, self.Settings.AccentColor)
-		self.Settings.BackgroundColor = recordToColor(saved.Theme.BackgroundColor, self.Settings.BackgroundColor)
-		self.Settings.ModuleColor = recordToColor(saved.Theme.ModuleColor, self.Settings.ModuleColor)
-		self.Settings.TextColor = recordToColor(saved.Theme.TextColor, self.Settings.TextColor)
+		self.Settings.AccentColor = fromRecord(saved.Theme.AccentColor, self.Settings.AccentColor)
+		self.Settings.BackgroundColor = fromRecord(saved.Theme.BackgroundColor, self.Settings.BackgroundColor)
+		self.Settings.ModuleColor = fromRecord(saved.Theme.ModuleColor, self.Settings.ModuleColor)
+		self.Settings.PanelColor = fromRecord(saved.Theme.PanelColor, self.Settings.PanelColor)
+		self.Settings.TextColor = fromRecord(saved.Theme.TextColor, self.Settings.TextColor)
 	end
 end
 
 function Window:_build()
-	local old = PlayerGui:FindFirstChild("ParacetamolUILib")
-	if old then
-		old:Destroy()
+	local oldGui = PlayerGui:FindFirstChild("ParacetamolUILib")
+	if oldGui then
+		oldGui:Destroy()
+	end
+
+	local oldBlur = Lighting:FindFirstChild("ParacetamolUILibBlur")
+	if oldBlur then
+		oldBlur:Destroy()
+	end
+
+	local blur
+	if self.Settings.Blur then
+		blur = make("BlurEffect", {
+			Name = "ParacetamolUILibBlur",
+			Size = 0,
+		}, Lighting)
+		tween(blur, {Size = 14}, 0.25)
 	end
 
 	local gui = make("ScreenGui", {
@@ -219,135 +235,183 @@ function Window:_build()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, PlayerGui)
 
+	local dim = make("Frame", {
+		Name = "Dim",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 0.32,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, gui)
+
 	local main = make("Frame", {
 		Name = "Main",
-		Size = UDim2.fromOffset(710, 520),
-		Position = UDim2.new(0.5, -355, 0.5, -260),
+		Size = UDim2.fromOffset(760, 520),
+		Position = UDim2.new(0.5, -380, 0.5, -260),
 		BackgroundColor3 = self.Settings.BackgroundColor,
+		BackgroundTransparency = 0.05,
 		BorderSizePixel = 0,
+		ZIndex = 5,
 	}, gui)
-	addCorner(main, 12)
-	addStroke(main, Color3.fromRGB(95, 95, 95), 0.25, 1)
+	corner(main, 18)
+	stroke(main, Color3.fromRGB(65, 24, 34), 0.15, 1)
 	self:_theme(main, "BackgroundColor3", "BackgroundColor")
 
-	local topBar = make("Frame", {
-		Name = "TopBar",
-		Size = UDim2.new(1, 0, 0, 44),
-		BackgroundTransparency = 1,
+	local side = make("Frame", {
+		Name = "Sidebar",
+		Size = UDim2.new(0, 74, 1, 0),
+		BackgroundColor3 = Color3.fromRGB(5, 6, 8),
+		BackgroundTransparency = 0.08,
+		BorderSizePixel = 0,
+		ZIndex = 6,
 	}, main)
+	corner(side, 18)
+	stroke(side, Color3.fromRGB(50, 18, 26), 0.35, 1)
 
-	local title = createText(topBar, self.Title, 18, true)
-	title.Name = "Title"
-	title.Size = UDim2.new(1, -150, 1, 0)
-	title.Position = UDim2.fromOffset(14, 0)
-	self:_theme(title, "TextColor3", "TextColor")
+	local logo = make("TextLabel", {
+		Name = "Logo",
+		Size = UDim2.fromOffset(54, 54),
+		Position = UDim2.fromOffset(10, 12),
+		BackgroundTransparency = 1,
+		Text = "S",
+		TextColor3 = Color3.fromRGB(245, 246, 248),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 32,
+		ZIndex = 7,
+	}, side)
+
+	local logoLine = make("Frame", {
+		Size = UDim2.fromOffset(52, 1),
+		Position = UDim2.fromOffset(11, 84),
+		BackgroundColor3 = Color3.fromRGB(57, 24, 31),
+		BorderSizePixel = 0,
+		ZIndex = 7,
+	}, side)
+
+	local tabsHolder = make("Frame", {
+		Name = "Tabs",
+		Size = UDim2.new(1, 0, 1, -130),
+		Position = UDim2.fromOffset(0, 102),
+		BackgroundTransparency = 1,
+		ZIndex = 7,
+	}, side)
+
+	local tabsLayout = make("UIListLayout", {
+		Padding = UDim.new(0, 12),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, tabsHolder)
 
 	local settingsButton = make("TextButton", {
-		Name = "SettingsButton",
-		Size = UDim2.fromOffset(30, 30),
-		Position = UDim2.new(1, -106, 0, 7),
-		BackgroundColor3 = self.Settings.ModuleColor,
-		Text = "G",
-		TextColor3 = self.Settings.TextColor,
-		Font = Enum.Font.GothamBold,
-		TextSize = 14,
-		AutoButtonColor = false,
-	}, topBar)
-	addCorner(settingsButton, 8)
-	self:_theme(settingsButton, "BackgroundColor3", "ModuleColor")
-	self:_theme(settingsButton, "TextColor3", "TextColor")
-
-	local minimizeButton = make("TextButton", {
-		Name = "MinimizeButton",
-		Size = UDim2.fromOffset(30, 30),
-		Position = UDim2.new(1, -70, 0, 7),
-		BackgroundColor3 = self.Settings.ModuleColor,
-		Text = "-",
-		TextColor3 = self.Settings.TextColor,
+		Name = "Settings",
+		Size = UDim2.fromOffset(42, 42),
+		Position = UDim2.new(0.5, -21, 1, -54),
+		BackgroundColor3 = Color3.fromRGB(11, 12, 15),
+		Text = "O",
+		TextColor3 = self.Settings.MutedTextColor,
 		Font = Enum.Font.GothamBold,
 		TextSize = 18,
 		AutoButtonColor = false,
-	}, topBar)
-	addCorner(minimizeButton, 8)
-	self:_theme(minimizeButton, "BackgroundColor3", "ModuleColor")
-	self:_theme(minimizeButton, "TextColor3", "TextColor")
+		ZIndex = 8,
+	}, side)
+	corner(settingsButton, 10)
 
-	local closeButton = make("TextButton", {
-		Name = "CloseButton",
-		Size = UDim2.fromOffset(30, 30),
-		Position = UDim2.new(1, -34, 0, 7),
-		BackgroundColor3 = Color3.fromRGB(185, 55, 70),
-		Text = "X",
-		TextColor3 = Color3.fromRGB(255, 255, 255),
-		Font = Enum.Font.GothamBold,
-		TextSize = 14,
-		AutoButtonColor = false,
-	}, topBar)
-	addCorner(closeButton, 8)
-
-	local tabBar = make("ScrollingFrame", {
-		Name = "TabBar",
-		Size = UDim2.new(1, -20, 0, 42),
-		Position = UDim2.fromOffset(10, 46),
+	local top = make("Frame", {
+		Name = "TopDrag",
+		Size = UDim2.new(1, -88, 0, 40),
+		Position = UDim2.fromOffset(82, 0),
 		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 2,
-		CanvasSize = UDim2.fromOffset(0, 0),
+		ZIndex = 8,
 	}, main)
 
-	local tabLayout = make("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		Padding = UDim.new(0, 8),
-		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, tabBar)
+	local titleLabel = text(top, self.Title, 13, true)
+	titleLabel.Size = UDim2.new(1, -82, 1, 0)
+	titleLabel.TextColor3 = self.Settings.MutedTextColor
+	titleLabel.ZIndex = 9
 
-	local holder = make("Frame", {
-		Name = "TabHolder",
-		Size = UDim2.new(1, -20, 1, -100),
-		Position = UDim2.fromOffset(10, 90),
+	local minimize = make("TextButton", {
+		Size = UDim2.fromOffset(30, 26),
+		Position = UDim2.new(1, -66, 0, 8),
+		BackgroundColor3 = Color3.fromRGB(14, 15, 18),
+		Text = "-",
+		TextColor3 = self.Settings.MutedTextColor,
+		Font = Enum.Font.GothamBold,
+		TextSize = 16,
+		AutoButtonColor = false,
+		ZIndex = 9,
+	}, top)
+	corner(minimize, 8)
+
+	local close = make("TextButton", {
+		Size = UDim2.fromOffset(30, 26),
+		Position = UDim2.new(1, -32, 0, 8),
+		BackgroundColor3 = Color3.fromRGB(14, 15, 18),
+		Text = "X",
+		TextColor3 = self.Settings.MutedTextColor,
+		Font = Enum.Font.GothamBold,
+		TextSize = 12,
+		AutoButtonColor = false,
+		ZIndex = 9,
+	}, top)
+	corner(close, 8)
+
+	local content = make("Frame", {
+		Name = "Content",
+		Size = UDim2.new(1, -92, 1, -24),
+		Position = UDim2.fromOffset(82, 12),
 		BackgroundTransparency = 1,
+		ZIndex = 7,
 	}, main)
 
 	self.Gui = gui
+	self.Blur = blur
+	self.Dim = dim
 	self.Main = main
-	self.TopBar = topBar
-	self.TabBar = tabBar
-	self.TabHolder = holder
-
-	self:_connect(tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-		tabBar.CanvasSize = UDim2.fromOffset(tabLayout.AbsoluteContentSize.X + 8, 0)
-	end)
+	self.Sidebar = side
+	self.TabsHolder = tabsHolder
+	self.TabContent = content
+	self.TabsLayout = tabsLayout
 
 	self:_connect(settingsButton.MouseButton1Click, function()
 		self:OpenSettingsPanel()
 	end)
 
-	self:_connect(minimizeButton.MouseButton1Click, function()
+	self:_connect(minimize.MouseButton1Click, function()
 		self.Minimized = not self.Minimized
-		tabBar.Visible = not self.Minimized
-		holder.Visible = not self.Minimized
+		content.Visible = not self.Minimized
 		tween(main, {
-			Size = self.Minimized and UDim2.fromOffset(710, 44) or UDim2.fromOffset(710, 520),
+			Size = self.Minimized and UDim2.fromOffset(760, 74) or UDim2.fromOffset(760, 520),
 		}, 0.2)
 	end)
 
-	self:_connect(closeButton.MouseButton1Click, function()
-		gui.Enabled = false
+	self:_connect(close.MouseButton1Click, function()
+		self.Gui.Enabled = false
+		if self.Blur then
+			tween(self.Blur, {Size = 0}, 0.18)
+		end
 	end)
 
-	self:_makeDraggable(topBar)
+	self:_makeDraggable(top)
+
+	self:_onTheme(function()
+		logo.TextColor3 = self.Settings.TextColor
+		settingsButton.TextColor3 = self.Settings.MutedTextColor
+	end)
+
+	dim.Active = false
+	logoLine.Active = false
 end
 
 function Window:_makeDraggable(handle)
 	local dragging = false
-	local dragStart = nil
-	local startPosition = nil
+	local dragStart
+	local startPos
 
 	self:_connect(handle.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
 			dragStart = input.Position
-			startPosition = self.Main.Position
+			startPos = self.Main.Position
 		end
 	end)
 
@@ -361,10 +425,10 @@ function Window:_makeDraggable(handle)
 		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 			local delta = input.Position - dragStart
 			self.Main.Position = UDim2.new(
-				startPosition.X.Scale,
-				startPosition.X.Offset + delta.X,
-				startPosition.Y.Scale,
-				startPosition.Y.Offset + delta.Y
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
 			)
 		end
 	end)
@@ -378,24 +442,23 @@ function Window:SaveConfig()
 	_G.ParacetamolUILibConfigs[self.SaveKey] = {
 		Controls = cloneTable(self.ControlValues),
 		Theme = {
-			AccentColor = colorToRecord(self.Settings.AccentColor),
-			BackgroundColor = colorToRecord(self.Settings.BackgroundColor),
-			ModuleColor = colorToRecord(self.Settings.ModuleColor),
-			TextColor = colorToRecord(self.Settings.TextColor),
+			AccentColor = colorRecord(self.Settings.AccentColor),
+			BackgroundColor = colorRecord(self.Settings.BackgroundColor),
+			ModuleColor = colorRecord(self.Settings.ModuleColor),
+			PanelColor = colorRecord(self.Settings.PanelColor),
+			TextColor = colorRecord(self.Settings.TextColor),
 		},
 	}
 end
 
 function Window:LoadConfig()
-	self:_loadRawConfig()
-
+	self:_readConfig()
 	for _, control in ipairs(self.Controls) do
 		local value = self.ControlValues[control.Key]
 		if value ~= nil then
 			control:SetValue(value, true)
 		end
 	end
-
 	self:_applyTheme()
 end
 
@@ -404,66 +467,123 @@ function Window:_setControlValue(key, value)
 	self:SaveConfig()
 end
 
-function Window:CreateTab(name)
+function Window:CreateTab(name, icon)
+	local icons = {"MAIN", "X", "->", "[]", "P", "K", "SET", "()", "O"}
 	local tab = setmetatable({
 		Name = name or "Tab",
+		Icon = icon or icons[(#self.Tabs % #icons) + 1],
 		Window = self,
 		Modules = {},
+		NextColumn = 1,
 	}, Tab)
 
 	local button = make("TextButton", {
-		Name = tab.Name .. "Button",
-		Size = UDim2.fromOffset(120, 32),
-		BackgroundColor3 = self.Settings.ModuleColor,
-		Text = tab.Name,
-		TextColor3 = self.Settings.TextColor,
-		Font = Enum.Font.GothamSemibold,
-		TextSize = 13,
+		Name = tab.Name .. "Tab",
+		Size = UDim2.fromOffset(54, 42),
+		BackgroundColor3 = Color3.fromRGB(9, 10, 13),
+		BackgroundTransparency = 1,
+		Text = tab.Icon,
+		TextColor3 = self.Settings.MutedTextColor,
+		Font = Enum.Font.GothamBold,
+		TextSize = tab.Icon == "MAIN" and 9 or 15,
 		AutoButtonColor = false,
-	}, self.TabBar)
-	addCorner(button, 8)
-	self:_theme(button, "TextColor3", "TextColor")
+		ZIndex = 8,
+	}, self.TabsHolder)
+	corner(button, 10)
 
-	local frame = make("ScrollingFrame", {
-		Name = tab.Name .. "Content",
+	local activeBar = make("Frame", {
+		Size = UDim2.fromOffset(3, 30),
+		Position = UDim2.fromOffset(-1, 6),
+		BackgroundColor3 = self.Settings.AccentColor,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ZIndex = 9,
+	}, button)
+	corner(activeBar, 3)
+	self:_theme(activeBar, "BackgroundColor3", "AccentColor")
+
+	local page = make("Frame", {
+		Name = tab.Name .. "Page",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 7,
+	}, self.TabContent)
+
+	local scroll = make("ScrollingFrame", {
+		Name = "Scroll",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		ScrollBarThickness = 4,
+		ScrollBarThickness = 3,
+		ScrollBarImageColor3 = self.Settings.AccentColor,
 		CanvasSize = UDim2.fromOffset(0, 0),
-		Visible = false,
-	}, self.TabHolder)
+		ZIndex = 7,
+	}, page)
+	self:_theme(scroll, "ScrollBarImageColor3", "AccentColor")
 
-	make("UIPadding", {
-		PaddingTop = UDim.new(0, 4),
-		PaddingBottom = UDim.new(0, 12),
-		PaddingLeft = UDim.new(0, 2),
-		PaddingRight = UDim.new(0, 8),
-	}, frame)
+	local columnRow = make("Frame", {
+		Name = "Columns",
+		Size = UDim2.new(1, -8, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		ZIndex = 7,
+	}, scroll)
 
-	local layout = make("UIListLayout", {
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
 		Padding = UDim.new(0, 10),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, frame)
+	}, columnRow)
 
-	self:_connect(layout:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-		frame.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 18)
-	end)
+	local left = make("Frame", {
+		Name = "Left",
+		Size = UDim2.new(0.5, -5, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		ZIndex = 7,
+	}, columnRow)
 
+	local right = make("Frame", {
+		Name = "Right",
+		Size = UDim2.new(0.5, -5, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1,
+		ZIndex = 7,
+	}, columnRow)
+
+	local leftLayout = make("UIListLayout", {
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, left)
+
+	local rightLayout = make("UIListLayout", {
+		Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, right)
+
+	local function updateCanvas()
+		local height = math.max(leftLayout.AbsoluteContentSize.Y, rightLayout.AbsoluteContentSize.Y) + 18
+		scroll.CanvasSize = UDim2.fromOffset(0, height)
+		columnRow.Size = UDim2.new(1, -8, 0, height)
+	end
+
+	self:_connect(leftLayout:GetPropertyChangedSignal("AbsoluteContentSize"), updateCanvas)
+	self:_connect(rightLayout:GetPropertyChangedSignal("AbsoluteContentSize"), updateCanvas)
 	self:_connect(button.MouseButton1Click, function()
 		self:SelectTab(tab)
 	end)
 
 	tab.Button = button
-	tab.Frame = frame
-	tab.Layout = layout
+	tab.ActiveBar = activeBar
+	tab.Page = page
+	tab.Scroll = scroll
+	tab.Columns = {left, right}
 
 	table.insert(self.Tabs, tab)
 
 	if not self.ActiveTab then
 		self:SelectTab(tab)
-	else
-		button.BackgroundColor3 = self.Settings.ModuleColor
 	end
 
 	return tab
@@ -472,12 +592,15 @@ end
 function Window:SelectTab(tab)
 	for _, other in ipairs(self.Tabs) do
 		local active = other == tab
-		other.Frame.Visible = active
+		other.Page.Visible = active
 		tween(other.Button, {
-			BackgroundColor3 = active and self.Settings.AccentColor or self.Settings.ModuleColor,
-		}, 0.16)
+			BackgroundTransparency = active and 0 or 1,
+			TextColor3 = active and self.Settings.TextColor or self.Settings.MutedTextColor,
+		}, 0.14)
+		tween(other.ActiveBar, {
+			BackgroundTransparency = active and 0 or 1,
+		}, 0.14)
 	end
-
 	self.ActiveTab = tab
 end
 
@@ -489,28 +612,28 @@ function Window:OpenSettingsPanel()
 
 	local panel = make("Frame", {
 		Name = "SettingsPanel",
-		Size = UDim2.fromOffset(320, 350),
-		Position = UDim2.new(1, -340, 0, 56),
-		BackgroundColor3 = self.Settings.BackgroundColor,
+		Size = UDim2.fromOffset(300, 286),
+		Position = UDim2.new(1, -312, 0, 52),
+		BackgroundColor3 = self.Settings.ModuleColor,
 		BorderSizePixel = 0,
-		ZIndex = 20,
+		ZIndex = 50,
 	}, self.Main)
-	addCorner(panel, 10)
-	addStroke(panel, Color3.fromRGB(105, 105, 105), 0.25, 1)
-	self:_theme(panel, "BackgroundColor3", "BackgroundColor")
+	corner(panel, 12)
+	stroke(panel, Color3.fromRGB(86, 31, 44), 0.22, 1)
+	self:_theme(panel, "BackgroundColor3", "ModuleColor")
 	self.SettingsPanel = panel
 
-	local header = createText(panel, "Settings", 16, true)
-	header.Size = UDim2.new(1, -20, 0, 34)
-	header.Position = UDim2.fromOffset(10, 6)
-	header.ZIndex = 21
-	self:_theme(header, "TextColor3", "TextColor")
+	local title = text(panel, "Settings", 16, true)
+	title.Size = UDim2.new(1, -20, 0, 34)
+	title.Position = UDim2.fromOffset(10, 8)
+	title.ZIndex = 51
+	self:_theme(title, "TextColor3", "TextColor")
 
 	local list = make("Frame", {
-		Size = UDim2.new(1, -20, 1, -50),
-		Position = UDim2.fromOffset(10, 44),
+		Size = UDim2.new(1, -20, 1, -54),
+		Position = UDim2.fromOffset(10, 46),
 		BackgroundTransparency = 1,
-		ZIndex = 21,
+		ZIndex = 51,
 	}, panel)
 
 	make("UIListLayout", {
@@ -518,73 +641,72 @@ function Window:OpenSettingsPanel()
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}, list)
 
-	local function colorEditor(label, settingName)
-		local block = make("Frame", {
-			Size = UDim2.new(1, 0, 0, 68),
-			BackgroundColor3 = self.Settings.ModuleColor,
+	local function editor(label, setting)
+		local row = make("Frame", {
+			Size = UDim2.new(1, 0, 0, 46),
+			BackgroundColor3 = self.Settings.PanelColor,
 			BorderSizePixel = 0,
-			ZIndex = 21,
+			ZIndex = 52,
 		}, list)
-		addCorner(block, 8)
-		self:_theme(block, "BackgroundColor3", "ModuleColor")
+		corner(row, 8)
+		self:_theme(row, "BackgroundColor3", "PanelColor")
 
-		local text = createText(block, label, 12, true)
-		text.Size = UDim2.new(1, -12, 0, 22)
-		text.Position = UDim2.fromOffset(8, 4)
-		text.ZIndex = 22
-		self:_theme(text, "TextColor3", "TextColor")
+		local name = text(row, label, 12, true)
+		name.Size = UDim2.fromOffset(92, 1)
+		name.Position = UDim2.fromOffset(9, 0)
+		name.ZIndex = 53
+		self:_theme(name, "TextColor3", "TextColor")
 
-		local color = self.Settings[settingName]
+		local c = self.Settings[setting]
 		local values = {
-			R = math.floor(color.R * 255 + 0.5),
-			G = math.floor(color.G * 255 + 0.5),
-			B = math.floor(color.B * 255 + 0.5),
+			R = math.floor(c.R * 255 + 0.5),
+			G = math.floor(c.G * 255 + 0.5),
+			B = math.floor(c.B * 255 + 0.5),
 		}
 
-		local row = make("Frame", {
-			Size = UDim2.new(1, -12, 0, 30),
-			Position = UDim2.fromOffset(6, 30),
+		local boxes = make("Frame", {
+			Size = UDim2.new(1, -110, 0, 28),
+			Position = UDim2.fromOffset(102, 9),
 			BackgroundTransparency = 1,
-			ZIndex = 22,
-		}, block)
+			ZIndex = 53,
+		}, row)
 
 		make("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, 6),
+			Padding = UDim.new(0, 5),
 			SortOrder = Enum.SortOrder.LayoutOrder,
-		}, row)
+		}, boxes)
 
 		for _, channel in ipairs({"R", "G", "B"}) do
 			local box = make("TextBox", {
 				Size = UDim2.new(0.333, -4, 1, 0),
-				BackgroundColor3 = Color3.fromRGB(38, 38, 38),
+				BackgroundColor3 = Color3.fromRGB(9, 10, 12),
 				Text = tostring(values[channel]),
 				TextColor3 = self.Settings.TextColor,
 				PlaceholderText = channel,
-				Font = Enum.Font.Gotham,
-				TextSize = 12,
+				Font = Enum.Font.GothamMedium,
+				TextSize = 11,
 				ClearTextOnFocus = false,
-				ZIndex = 23,
-			}, row)
-			addCorner(box, 6)
+				ZIndex = 54,
+			}, boxes)
+			corner(box, 7)
 			self:_theme(box, "TextColor3", "TextColor")
 
 			self:_connect(box.FocusLost, function()
-				local number = tonumber(box.Text)
-				number = math.clamp(number or values[channel], 0, 255)
+				local number = math.clamp(tonumber(box.Text) or values[channel], 0, 255)
 				values[channel] = number
 				box.Text = tostring(number)
-				self.Settings[settingName] = Color3.fromRGB(values.R, values.G, values.B)
+				self.Settings[setting] = Color3.fromRGB(values.R, values.G, values.B)
 				self:_applyTheme()
 				self:SaveConfig()
 			end)
 		end
 	end
 
-	colorEditor("Accent Color", "AccentColor")
-	colorEditor("Background Color", "BackgroundColor")
-	colorEditor("Module Color", "ModuleColor")
-	colorEditor("Text Color", "TextColor")
+	editor("Accent", "AccentColor")
+	editor("Background", "BackgroundColor")
+	editor("Module", "ModuleColor")
+	editor("Text", "TextColor")
 end
 
 function Window:Destroy()
@@ -593,43 +715,48 @@ function Window:Destroy()
 	end
 
 	self.Destroyed = true
-
 	for _, connection in ipairs(self.Connections) do
 		if connection.Connected then
 			connection:Disconnect()
 		end
 	end
 
-	table.clear(self.Connections)
-
+	if self.Blur then
+		self.Blur:Destroy()
+	end
 	if self.Gui then
 		self.Gui:Destroy()
 	end
 end
 
 function Tab:CreateModule(title)
+	local column = self.Columns[self.NextColumn]
+	self.NextColumn = self.NextColumn == 1 and 2 or 1
+
 	local module = setmetatable({
 		Title = title or "Module",
 		Tab = self,
 		Window = self.Window,
-		Controls = {},
 		ControlNameCounts = {},
+		Controls = {},
 		Collapsed = false,
 	}, Module)
 
 	local frame = make("Frame", {
 		Name = module.Title,
-		Size = UDim2.new(1, -4, 0, 0),
+		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundColor3 = self.Window.Settings.ModuleColor,
+		BackgroundTransparency = 0.03,
 		BorderSizePixel = 0,
-	}, self.Frame)
-	addCorner(frame, 10)
-	addStroke(frame, Color3.fromRGB(120, 120, 120), 0.55, 1)
+		ZIndex = 10,
+	}, column)
+	corner(frame, 10)
+	stroke(frame, Color3.fromRGB(67, 24, 34), 0.2, 1)
 	self.Window:_theme(frame, "BackgroundColor3", "ModuleColor")
 
 	make("UIPadding", {
-		PaddingTop = UDim.new(0, 10),
+		PaddingTop = UDim.new(0, 9),
 		PaddingBottom = UDim.new(0, 10),
 		PaddingLeft = UDim.new(0, 10),
 		PaddingRight = UDim.new(0, 10),
@@ -642,33 +769,45 @@ function Tab:CreateModule(title)
 
 	local header = make("TextButton", {
 		Name = "Header",
-		Size = UDim2.new(1, 0, 0, 34),
+		Size = UDim2.new(1, 0, 0, 28),
 		BackgroundTransparency = 1,
 		Text = "",
 		AutoButtonColor = false,
+		ZIndex = 11,
 	}, frame)
 
-	local titleLabel = createText(header, module.Title, 20, true)
-	titleLabel.Size = UDim2.new(1, -54, 1, 0)
-	self.Window:_theme(titleLabel, "TextColor3", "TextColor")
+	local titleText = text(header, module.Title, 16, true)
+	titleText.Size = UDim2.new(1, -46, 1, 0)
+	titleText.ZIndex = 12
+	self.Window:_theme(titleText, "TextColor3", "TextColor")
 
-	local collapseLabel = make("TextLabel", {
-		Size = UDim2.fromOffset(42, 24),
-		Position = UDim2.new(1, -42, 0, 5),
-		BackgroundColor3 = Color3.fromRGB(38, 38, 38),
-		Text = "key",
+	local key = make("TextLabel", {
+		Size = UDim2.fromOffset(34, 20),
+		Position = UDim2.new(1, -34, 0.5, -10),
+		BackgroundColor3 = Color3.fromRGB(9, 10, 12),
+		Text = "KEY",
 		TextColor3 = self.Window.Settings.TextColor,
 		Font = Enum.Font.GothamBold,
-		TextSize = 11,
+		TextSize = 8,
+		ZIndex = 12,
 	}, header)
-	addCorner(collapseLabel, 8)
-	self.Window:_theme(collapseLabel, "TextColor3", "TextColor")
+	corner(key, 8)
+	stroke(key, Color3.fromRGB(65, 67, 74), 0.65, 1)
+	self.Window:_theme(key, "TextColor3", "TextColor")
+
+	local divider = make("Frame", {
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = Color3.fromRGB(48, 23, 30),
+		BorderSizePixel = 0,
+		ZIndex = 11,
+	}, frame)
 
 	local content = make("Frame", {
 		Name = "Content",
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
+		ZIndex = 11,
 	}, frame)
 
 	make("UIListLayout", {
@@ -679,7 +818,8 @@ function Tab:CreateModule(title)
 	self.Window:_connect(header.MouseButton1Click, function()
 		module.Collapsed = not module.Collapsed
 		content.Visible = not module.Collapsed
-		collapseLabel.Text = module.Collapsed and "+" or "key"
+		divider.Visible = not module.Collapsed
+		key.Text = module.Collapsed and "+" or "KEY"
 	end)
 
 	module.Frame = frame
@@ -688,27 +828,27 @@ function Tab:CreateModule(title)
 	return module
 end
 
-function Module:_nextKey(label)
+function Module:_key(label)
 	self.ControlNameCounts[label] = (self.ControlNameCounts[label] or 0) + 1
 	local suffix = self.ControlNameCounts[label] > 1 and "_" .. tostring(self.ControlNameCounts[label]) or ""
 	return self.Title .. "." .. label .. suffix
 end
 
-function Module:_registerControl(label, defaultValue, setValue, getValue)
-	local key = self:_nextKey(label)
-	local control = setmetatable({
+function Module:_register(label, defaultValue, setter, getter)
+	local key = self:_key(label)
+	local control = {
 		Key = key,
 		Label = label,
-		SetValue = setValue,
-		GetValue = getValue,
-	}, Control)
+		SetValue = setter,
+		GetValue = getter,
+	}
 
 	table.insert(self.Controls, control)
 	table.insert(self.Window.Controls, control)
 
 	local loaded = self.Window.ControlValues[key]
 	if loaded ~= nil then
-		control:SetValue(loaded, true)
+		setter(loaded, true)
 	else
 		self.Window:_setControlValue(key, defaultValue)
 	end
@@ -718,65 +858,70 @@ end
 
 function Module:AddToggle(label, defaultValue, callback)
 	local value = defaultValue == true
-	local controlKey = nil
+	local key
 
 	local row = make("Frame", {
-		Size = UDim2.new(1, 0, 0, 34),
+		Size = UDim2.new(1, 0, 0, 24),
 		BackgroundTransparency = 1,
+		ZIndex = 12,
 	}, self.Content)
 
-	local text = createText(row, label or "Enabled", 15, true)
-	text.Size = UDim2.new(1, -64, 1, 0)
-	self.Window:_theme(text, "TextColor3", "TextColor")
+	local labelText = text(row, label or "Enabled", 12, false)
+	labelText.Size = UDim2.new(1, -48, 1, 0)
+	labelText.TextColor3 = self.Window.Settings.MutedTextColor
+	labelText.ZIndex = 13
 
 	local switch = make("TextButton", {
-		Size = UDim2.fromOffset(48, 24),
-		Position = UDim2.new(1, -48, 0.5, -12),
-		BackgroundColor3 = Color3.fromRGB(92, 92, 92),
+		Size = UDim2.fromOffset(34, 17),
+		Position = UDim2.new(1, -34, 0.5, -8),
+		BackgroundColor3 = Color3.fromRGB(104, 107, 114),
 		Text = "",
 		AutoButtonColor = false,
+		ZIndex = 13,
 	}, row)
-	addCorner(switch, 12)
+	corner(switch, 9)
 
 	local knob = make("Frame", {
-		Size = UDim2.fromOffset(20, 20),
+		Size = UDim2.fromOffset(13, 13),
 		Position = UDim2.fromOffset(2, 2),
-		BackgroundColor3 = Color3.fromRGB(245, 245, 245),
+		BackgroundColor3 = Color3.fromRGB(245, 247, 250),
 		BorderSizePixel = 0,
+		ZIndex = 14,
 	}, switch)
-	addCorner(knob, 10)
+	corner(knob, 7)
+
+	local function redraw()
+		switch.BackgroundColor3 = value and self.Window.Settings.AccentColor or Color3.fromRGB(104, 107, 114)
+		knob.Position = value and UDim2.fromOffset(19, 2) or UDim2.fromOffset(2, 2)
+	end
 
 	local function setValue(newValue, silent)
 		value = newValue == true
 		tween(switch, {
-			BackgroundColor3 = value and self.Window.Settings.AccentColor or Color3.fromRGB(92, 92, 92),
-		}, 0.16)
+			BackgroundColor3 = value and self.Window.Settings.AccentColor or Color3.fromRGB(104, 107, 114),
+		}, 0.14)
 		tween(knob, {
-			Position = value and UDim2.fromOffset(26, 2) or UDim2.fromOffset(2, 2),
-		}, 0.16)
+			Position = value and UDim2.fromOffset(19, 2) or UDim2.fromOffset(2, 2),
+		}, 0.14)
 
-		if controlKey then
-			self.Window:_setControlValue(controlKey, value)
+		if key then
+			self.Window:_setControlValue(key, value)
 		end
-
 		if not silent then
-			safeCallback(callback, value)
+			safeCall(callback, value)
 		end
 	end
 
-	self.Window:_onThemeChanged(function()
-		switch.BackgroundColor3 = value and self.Window.Settings.AccentColor or Color3.fromRGB(92, 92, 92)
-	end)
-
 	self.Window:_connect(switch.MouseButton1Click, function()
-		setValue(not value)
+		setValue(not value, false)
 	end)
+	self.Window:_onTheme(redraw)
 
-	local control = self:_registerControl(label or "Toggle", value, setValue, function()
+	local control = self:_register(label or "Toggle", value, setValue, function()
 		return value
 	end)
-	controlKey = control.Key
-	setValue(value, true)
+	key = control.Key
+	redraw()
 	return control
 end
 
@@ -788,72 +933,76 @@ function Module:AddSlider(label, min, max, defaultValue, callback)
 	end
 
 	local value = math.clamp(tonumber(defaultValue) or min, min, max)
+	local key
 	local dragging = false
-	local controlKey = nil
 
 	local row = make("Frame", {
-		Size = UDim2.new(1, 0, 0, 56),
+		Size = UDim2.new(1, 0, 0, 45),
 		BackgroundTransparency = 1,
+		ZIndex = 12,
 	}, self.Content)
 
-	local text = createText(row, label or "Slider", 15, true)
-	text.Size = UDim2.new(1, -86, 0, 22)
-	self.Window:_theme(text, "TextColor3", "TextColor")
+	local labelText = text(row, label or "Slider", 12, false)
+	labelText.Size = UDim2.new(1, -70, 0, 18)
+	labelText.TextColor3 = self.Window.Settings.MutedTextColor
+	labelText.ZIndex = 13
 
-	local valueLabel = createText(row, "0.00", 15, true)
-	valueLabel.Size = UDim2.fromOffset(82, 22)
-	valueLabel.Position = UDim2.new(1, -82, 0, 0)
-	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-	self.Window:_theme(valueLabel, "TextColor3", "TextColor")
+	local valueText = text(row, "0.00", 13, true)
+	valueText.Size = UDim2.fromOffset(66, 18)
+	valueText.Position = UDim2.new(1, -66, 0, 0)
+	valueText.TextXAlignment = Enum.TextXAlignment.Right
+	valueText.ZIndex = 13
+	self.Window:_theme(valueText, "TextColor3", "TextColor")
 
 	local track = make("Frame", {
-		Size = UDim2.new(1, -8, 0, 5),
-		Position = UDim2.fromOffset(4, 38),
-		BackgroundColor3 = Color3.fromRGB(32, 32, 32),
+		Size = UDim2.new(1, -4, 0, 3),
+		Position = UDim2.fromOffset(2, 31),
+		BackgroundColor3 = Color3.fromRGB(31, 32, 36),
 		BorderSizePixel = 0,
+		ZIndex = 13,
 	}, row)
-	addCorner(track, 4)
+	corner(track, 3)
 
 	local fill = make("Frame", {
 		Size = UDim2.fromScale(0, 1),
 		BackgroundColor3 = self.Window.Settings.AccentColor,
 		BorderSizePixel = 0,
+		ZIndex = 14,
 	}, track)
-	addCorner(fill, 4)
+	corner(fill, 3)
 	self.Window:_theme(fill, "BackgroundColor3", "AccentColor")
 
 	local knob = make("Frame", {
-		Size = UDim2.fromOffset(16, 16),
-		Position = UDim2.new(0, -8, 0.5, -8),
-		BackgroundColor3 = self.Window.Settings.AccentColor,
+		Size = UDim2.fromOffset(14, 14),
+		Position = UDim2.new(0, -7, 0.5, -7),
+		BackgroundColor3 = Color3.fromRGB(245, 247, 250),
 		BorderSizePixel = 0,
+		ZIndex = 15,
 	}, track)
-	addCorner(knob, 8)
-	self.Window:_theme(knob, "BackgroundColor3", "AccentColor")
+	corner(knob, 7)
 
-	local function percentFromValue(newValue)
-		return math.clamp((newValue - min) / (max - min), 0, 1)
+	local function percent()
+		return math.clamp((value - min) / (max - min), 0, 1)
 	end
 
 	local function setValue(newValue, silent)
 		value = math.clamp(tonumber(newValue) or min, min, max)
-		local percent = percentFromValue(value)
-		valueLabel.Text = string.format("%.2f", value)
-		tween(fill, {Size = UDim2.fromScale(percent, 1)}, 0.08)
-		tween(knob, {Position = UDim2.new(percent, -8, 0.5, -8)}, 0.08)
+		local p = percent()
+		valueText.Text = string.format("%.2f", value)
+		tween(fill, {Size = UDim2.fromScale(p, 1)}, 0.08)
+		tween(knob, {Position = UDim2.new(p, -7, 0.5, -7)}, 0.08)
 
-		if controlKey then
-			self.Window:_setControlValue(controlKey, value)
+		if key then
+			self.Window:_setControlValue(key, value)
 		end
-
 		if not silent then
-			safeCallback(callback, value)
+			safeCall(callback, value)
 		end
 	end
 
 	local function setFromX(x)
-		local percent = math.clamp((x - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
-		setValue(min + ((max - min) * percent), false)
+		local p = math.clamp((x - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
+		setValue(min + ((max - min) * p), false)
 	end
 
 	self.Window:_connect(track.InputBegan, function(input)
@@ -862,65 +1011,59 @@ function Module:AddSlider(label, min, max, defaultValue, callback)
 			setFromX(input.Position.X)
 		end
 	end)
-
 	self.Window:_connect(knob.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
 		end
 	end)
-
 	self.Window:_connect(UserInputService.InputEnded, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = false
 		end
 	end)
-
 	self.Window:_connect(UserInputService.InputChanged, function(input)
 		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 			setFromX(input.Position.X)
 		end
 	end)
 
-	local control = self:_registerControl(label or "Slider", value, setValue, function()
+	local control = self:_register(label or "Slider", value, setValue, function()
 		return value
 	end)
-	controlKey = control.Key
+	key = control.Key
 	setValue(value, true)
 	return control
 end
 
 function Module:AddButton(label, callback)
 	local button = make("TextButton", {
-		Size = UDim2.new(1, 0, 0, 34),
-		BackgroundColor3 = Color3.fromRGB(66, 66, 66),
+		Size = UDim2.new(1, 0, 0, 28),
+		BackgroundColor3 = Color3.fromRGB(18, 19, 23),
 		Text = label or "Button",
 		TextColor3 = self.Window.Settings.TextColor,
-		Font = Enum.Font.GothamSemibold,
-		TextSize = 14,
+		Font = Enum.Font.GothamBold,
+		TextSize = 12,
 		AutoButtonColor = false,
+		ZIndex = 12,
 	}, self.Content)
-	addCorner(button, 8)
-	addStroke(button, Color3.fromRGB(120, 120, 120), 0.65, 1)
+	corner(button, 7)
+	stroke(button, Color3.fromRGB(68, 70, 78), 0.55, 1)
 	self.Window:_theme(button, "TextColor3", "TextColor")
 
 	self.Window:_connect(button.MouseEnter, function()
-		tween(button, {BackgroundColor3 = Color3.fromRGB(78, 78, 78)}, 0.12)
+		tween(button, {BackgroundColor3 = Color3.fromRGB(24, 25, 30)}, 0.1)
 	end)
-
 	self.Window:_connect(button.MouseLeave, function()
-		tween(button, {BackgroundColor3 = Color3.fromRGB(66, 66, 66)}, 0.12)
+		tween(button, {BackgroundColor3 = Color3.fromRGB(18, 19, 23)}, 0.1)
 	end)
-
 	self.Window:_connect(button.MouseButton1Down, function()
 		tween(button, {BackgroundColor3 = self.Window.Settings.AccentColor}, 0.08)
 	end)
-
 	self.Window:_connect(button.MouseButton1Up, function()
-		tween(button, {BackgroundColor3 = Color3.fromRGB(78, 78, 78)}, 0.08)
+		tween(button, {BackgroundColor3 = Color3.fromRGB(24, 25, 30)}, 0.08)
 	end)
-
 	self.Window:_connect(button.MouseButton1Click, function()
-		safeCallback(callback)
+		safeCall(callback)
 	end)
 
 	return button
@@ -931,62 +1074,80 @@ function Module:AddDropdown(label, options, multipleOptions, callback)
 	multipleOptions = multipleOptions == true
 
 	local selected = multipleOptions and {} or tostring(options[1] or "")
+	local key
+	local open = false
 	local optionButtons = {}
-	local opened = false
-	local controlKey = nil
 
 	local container = make("Frame", {
-		Size = UDim2.new(1, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 54),
 		BackgroundTransparency = 1,
 		ClipsDescendants = true,
+		ZIndex = 12,
 	}, self.Content)
 
+	local labelText = text(container, label or "Enum", 12, false)
+	labelText.Size = UDim2.new(1, 0, 0, 18)
+	labelText.TextColor3 = self.Window.Settings.MutedTextColor
+	labelText.Active = true
+	labelText.ZIndex = 13
+
 	local button = make("TextButton", {
-		Size = UDim2.new(1, 0, 0, 34),
-		BackgroundColor3 = Color3.fromRGB(66, 66, 66),
+		Size = UDim2.new(1, 0, 0, 28),
+		Position = UDim2.fromOffset(0, 22),
+		BackgroundTransparency = 1,
 		Text = "",
 		AutoButtonColor = false,
+		ZIndex = 13,
 	}, container)
-	addCorner(button, 8)
-	addStroke(button, Color3.fromRGB(120, 120, 120), 0.65, 1)
 
-	local display = createText(button, label or "Dropdown", 14, true)
-	display.Size = UDim2.new(1, -44, 1, 0)
-	display.Position = UDim2.fromOffset(10, 0)
-	self.Window:_theme(display, "TextColor3", "TextColor")
-
-	local arrow = make("TextLabel", {
-		Size = UDim2.fromOffset(28, 34),
-		Position = UDim2.new(1, -32, 0, 0),
+	local chips = make("Frame", {
+		Size = UDim2.new(1, -34, 1, 0),
 		BackgroundTransparency = 1,
-		Text = "v",
-		TextColor3 = self.Window.Settings.TextColor,
-		Font = Enum.Font.GothamBold,
-		TextSize = 14,
+		ZIndex = 14,
 	}, button)
-	self.Window:_theme(arrow, "TextColor3", "TextColor")
 
-	local optionsFrame = make("Frame", {
+	make("UIListLayout", {
+		FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 7),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}, chips)
+
+	local openButton = make("TextButton", {
+		Size = UDim2.fromOffset(28, 28),
+		Position = UDim2.new(1, -28, 0, 0),
+		BackgroundColor3 = Color3.fromRGB(16, 17, 21),
+		Text = "v",
+		TextColor3 = self.Window.Settings.MutedTextColor,
+		Font = Enum.Font.GothamBold,
+		TextSize = 12,
+		AutoButtonColor = false,
+		ZIndex = 15,
+	}, button)
+	corner(openButton, 8)
+	stroke(openButton, Color3.fromRGB(64, 65, 72), 0.65, 1)
+
+	local dropdown = make("Frame", {
 		Size = UDim2.new(1, 0, 0, 0),
-		Position = UDim2.fromOffset(0, 40),
-		BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+		Position = UDim2.fromOffset(0, 56),
+		BackgroundColor3 = Color3.fromRGB(10, 11, 14),
 		BorderSizePixel = 0,
 		ClipsDescendants = true,
+		ZIndex = 16,
 	}, container)
-	addCorner(optionsFrame, 8)
-	addStroke(optionsFrame, Color3.fromRGB(95, 95, 95), 0.6, 1)
+	corner(dropdown, 8)
+	stroke(dropdown, Color3.fromRGB(64, 65, 72), 0.5, 1)
 
 	make("UIPadding", {
 		PaddingTop = UDim.new(0, 6),
 		PaddingBottom = UDim.new(0, 6),
 		PaddingLeft = UDim.new(0, 6),
 		PaddingRight = UDim.new(0, 6),
-	}, optionsFrame)
+	}, dropdown)
 
 	make("UIListLayout", {
 		Padding = UDim.new(0, 4),
 		SortOrder = Enum.SortOrder.LayoutOrder,
-	}, optionsFrame)
+	}, dropdown)
 
 	local function currentValue()
 		if not multipleOptions then
@@ -995,112 +1156,127 @@ function Module:AddDropdown(label, options, multipleOptions, callback)
 
 		local result = {}
 		for _, option in ipairs(options) do
-			local textOption = tostring(option)
-			if selected[textOption] then
-				table.insert(result, textOption)
+			local opt = tostring(option)
+			if selected[opt] then
+				table.insert(result, opt)
 			end
 		end
 		return result
 	end
 
-	local function displayText()
-		if not multipleOptions then
-			return tostring(label or "Dropdown") .. "  |  " .. tostring(selected)
+	local function persist(silent)
+		if key then
+			self.Window:_setControlValue(key, currentValue())
 		end
-
-		local count = 0
-		for _, isSelected in pairs(selected) do
-			if isSelected then
-				count += 1
-			end
+		if not silent then
+			safeCall(callback, currentValue())
 		end
-
-		if count == 0 then
-			return tostring(label or "Dropdown")
-		end
-
-		return tostring(label or "Dropdown") .. "  |  " .. tostring(count) .. " selected"
 	end
 
 	local function refresh()
-		display.Text = displayText()
+		for _, child in ipairs(chips:GetChildren()) do
+			if child:IsA("TextButton") then
+				child:Destroy()
+			end
+		end
+
+		for index, option in ipairs(options) do
+			local opt = tostring(option)
+			local active = multipleOptions and selected[opt] == true or selected == opt
+			local chip = make("TextButton", {
+				Size = UDim2.fromOffset(index == 1 and 66 or 72, 28),
+				BackgroundColor3 = active and Color3.fromRGB(24, 25, 30) or Color3.fromRGB(16, 17, 21),
+				Text = opt,
+				TextColor3 = active and self.Window.Settings.TextColor or self.Window.Settings.MutedTextColor,
+				Font = Enum.Font.GothamBold,
+				TextSize = 12,
+				AutoButtonColor = false,
+				ZIndex = 15,
+			}, chips)
+			corner(chip, 8)
+			stroke(chip, active and self.Window.Settings.AccentColor or Color3.fromRGB(64, 65, 72), active and 0.25 or 0.65, 1)
+
+			self.Window:_connect(chip.MouseButton1Click, function()
+				if multipleOptions then
+					selected[opt] = not selected[opt]
+				else
+					selected = opt
+				end
+				refresh()
+				persist(false)
+			end)
+		end
+
 		for option, optionButton in pairs(optionButtons) do
 			local active = multipleOptions and selected[option] == true or selected == option
-			optionButton.BackgroundColor3 = active and self.Window.Settings.AccentColor or Color3.fromRGB(58, 58, 58)
+			optionButton.BackgroundColor3 = active and self.Window.Settings.AccentColor or Color3.fromRGB(20, 21, 25)
 		end
 	end
 
-	self.Window:_onThemeChanged(refresh)
-
-	local function persistAndCallback(silent)
-		if controlKey then
-			self.Window:_setControlValue(controlKey, currentValue())
-		end
-
-		if not silent then
-			safeCallback(callback, currentValue())
-		end
+	local function setOpen(state)
+		open = state
+		openButton.Text = open and "^" or "v"
+		local height = open and (62 + (#options * 30) + 12) or 54
+		tween(container, {Size = UDim2.new(1, 0, 0, height)}, 0.18)
+		tween(dropdown, {Size = UDim2.new(1, 0, 0, open and ((#options * 30) + 12) or 0)}, 0.18)
 	end
 
-	local function setOpened(state)
-		opened = state
-		local optionsHeight = (#options * 30) + 12
-		local containerHeight = opened and (44 + optionsHeight) or 38
-		arrow.Text = opened and "^" or "v"
-		tween(container, {Size = UDim2.new(1, 0, 0, containerHeight)}, 0.18)
-		tween(optionsFrame, {Size = UDim2.new(1, 0, 0, opened and optionsHeight or 0)}, 0.18)
+	self.Window:_connect(openButton.MouseButton1Click, function()
+		setOpen(not open)
+	end)
+
+	self.Window:_connect(labelText.InputBegan, function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			setOpen(not open)
+		end
+	end)
+
+	for _, option in ipairs(options) do
+		local opt = tostring(option)
+		local optionButton = make("TextButton", {
+			Size = UDim2.new(1, 0, 0, 26),
+			BackgroundColor3 = Color3.fromRGB(20, 21, 25),
+			Text = opt,
+			TextColor3 = self.Window.Settings.TextColor,
+			Font = Enum.Font.GothamMedium,
+			TextSize = 12,
+			AutoButtonColor = false,
+			ZIndex = 17,
+		}, dropdown)
+		corner(optionButton, 7)
+		optionButtons[opt] = optionButton
+
+		self.Window:_connect(optionButton.MouseButton1Click, function()
+			if multipleOptions then
+				selected[opt] = not selected[opt]
+			else
+				selected = opt
+				setOpen(false)
+			end
+			refresh()
+			persist(false)
+		end)
 	end
 
 	local function setValue(newValue, silent)
 		if multipleOptions then
 			selected = {}
 			if typeof(newValue) == "table" then
-				for _, option in ipairs(newValue) do
-					selected[tostring(option)] = true
+				for _, item in ipairs(newValue) do
+					selected[tostring(item)] = true
 				end
 			end
 		else
 			selected = tostring(newValue or options[1] or "")
 		end
-
 		refresh()
-		persistAndCallback(silent)
+		persist(silent)
 	end
 
-	self.Window:_connect(button.MouseButton1Click, function()
-		setOpened(not opened)
-	end)
+	self.Window:_onTheme(refresh)
 
-	for _, option in ipairs(options) do
-		local optionText = tostring(option)
-		local optionButton = make("TextButton", {
-			Size = UDim2.new(1, 0, 0, 26),
-			BackgroundColor3 = Color3.fromRGB(58, 58, 58),
-			Text = optionText,
-			TextColor3 = self.Window.Settings.TextColor,
-			Font = Enum.Font.GothamSemibold,
-			TextSize = 13,
-			AutoButtonColor = false,
-		}, optionsFrame)
-		addCorner(optionButton, 7)
-		self.Window:_theme(optionButton, "TextColor3", "TextColor")
-		optionButtons[optionText] = optionButton
-
-		self.Window:_connect(optionButton.MouseButton1Click, function()
-			if multipleOptions then
-				selected[optionText] = not selected[optionText]
-			else
-				selected = optionText
-				setOpened(false)
-			end
-
-			refresh()
-			persistAndCallback(false)
-		end)
-	end
-
-	local control = self:_registerControl(label or "Dropdown", currentValue(), setValue, currentValue)
-	controlKey = control.Key
+	local control = self:_register(label or "Dropdown", currentValue(), setValue, currentValue)
+	key = control.Key
 	refresh()
 	return control
 end
