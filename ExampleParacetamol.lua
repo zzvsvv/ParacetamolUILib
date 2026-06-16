@@ -13,14 +13,14 @@ local Window = Library:CreateWindow({
 	AutoShow = true,
 })
 
--- ── Services ──────────────────────────────────────────────────────────────
+-- Services
 local Players = game:GetService('Players')
 local RunService = game:GetService('RunService')
 local UserInputService = game:GetService('UserInputService')
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- ── Tabs ──────────────────────────────────────────────────────────────────
+-- Tabs
 local Tabs = {
 	Main = Window:AddTab('Main'),
 	Combat = Window:AddTab('Combat'),
@@ -28,7 +28,7 @@ local Tabs = {
 	['UI Settings'] = Window:AddTab('UI Settings'),
 }
 
--- ── Main Tab ──────────────────────────────────────────────────────────────
+-- Main Tab
 local MainGroup = Tabs.Main:AddLeftSection('Player')
 
 -- Toggle: Infinite Jump
@@ -76,7 +76,7 @@ Players.PlayerRemoving:Connect(function()
 	playerCountLabel:SetText('Players online: ' .. #Players:GetPlayers())
 end)
 
--- ── Combat Tab ────────────────────────────────────────────────────────────
+-- Combat Tab
 local CombatGroup = Tabs.Combat:AddLeftSection('Automation')
 
 CombatGroup:AddToggle('AutoFarm', {
@@ -118,7 +118,7 @@ TargetGroup:AddDropdown('TargetPlayer', {
 	Values = {},
 })
 
--- ── Visuals Tab ───────────────────────────────────────────────────────────
+-- Visuals Tab
 local VisualsGroup = Tabs.Visuals:AddLeftSection('ESP')
 
 -- ESP Toggle
@@ -156,7 +156,7 @@ VisualsGroup:AddToggle('ESPTracers', {
 	Default = false,
 })
 
--- ── ESP Implementation ────────────────────────────────────────────────────
+-- ESP Implementation
 -- Uses modern Highlight instances + Drawing for a complete ESP
 
 local ESPObjects = {} -- player -> { highlight, drawing objects }
@@ -361,7 +361,7 @@ RunService.RenderStepped:Connect(function()
 	updateESP()
 end)
 
--- ── Visuals - Right Side ──────────────────────────────────────────────────
+-- Visuals - Right Side
 local WorldGroup = Tabs.Visuals:AddRightSection('World')
 
 WorldGroup:AddToggle('FullBright', {
@@ -382,7 +382,7 @@ WorldGroup:AddDropdown('TimeOfDay', {
 	Default = 1,
 })
 
--- ── Logic ─────────────────────────────────────────────────────────────────
+-- Logic
 
 -- Infinite Jump
 UserInputService.JumpRequest:Connect(function()
@@ -421,7 +421,7 @@ end
 ParacetamolToggles.FullBright:OnChanged(updateLighting)
 updateLighting()
 
--- ── UI Settings ───────────────────────────────────────────────────────────
+-- UI Settings
 Library.ThemeManager:SetLibrary(Library)
 Library.SaveManager:SetLibrary(Library)
 Library.SaveManager:IgnoreThemeSettings()

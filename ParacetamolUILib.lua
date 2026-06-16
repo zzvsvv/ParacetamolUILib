@@ -1,12 +1,12 @@
 --[[
-	ParacetamolUILib â€” Glassmorphic UI Library for Roblox
+	ParacetamolUILib - Glassmorphic UI Library for Roblox
 	https://raw.githubusercontent.com/zzvsvv/ParacetamolUILib/refs/heads/main/ParacetamolUILib.lua
 ]]
 
 local ParacetamolUILib = {}
 local version = "1.0.0"
 
--- â”€â”€ Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -17,7 +17,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer and LocalPlayer:GetMouse()
 
--- â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Constants
 local COLORS = {
 	Accent = Color3.fromRGB(180, 15, 15),
 	AccentDark = Color3.fromRGB(120, 8, 8),
@@ -67,7 +67,7 @@ local TWEEN = {
 	Bounce = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 }
 
--- â”€â”€ Module-level stores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Module-level stores
 local ParacetamolToggles = {}
 local ParacetamolOptions = {}
 local Elements = {}
@@ -102,7 +102,7 @@ local function CreateIcon(iconName, size, color)
 	return img
 end
 
--- â”€â”€ Utility Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Utility Functions
 
 local function MakeDraggable(frame, dragHandle)
 	dragHandle = dragHandle or frame
@@ -159,7 +159,7 @@ local function CreateShadow(frame, transparency, size)
 	shadow.AnchorPoint = Vector2.new(0.5, 0.5)
 	shadow.BackgroundTransparency = 1
 	shadow.BorderSizePixel = 0
-	shadow.Size = UDim2.fromScale(1, 1) + UDim2.fromOffset(size or 20, size or 20)
+	shadow.Size = UDim2.new(1, size or 20, 1, size or 20)
 	shadow.Position = UDim2.fromScale(0.5, 0.5)
 	shadow.Image = "rbxassetid://6015897843"
 	shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
@@ -246,7 +246,7 @@ local function TweenObject(obj, props, tweenInfo)
 	return tween
 end
 
--- â”€â”€ Loading Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Loading Screen
 local LoadingScreen = {}
 local loadingScreenInstance = nil
 
@@ -372,7 +372,7 @@ end
 
 LoadingScreen:Show()
 
--- â”€â”€ Element Base (mixin) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Element Base (mixin)
 
 local ElementBase = {}
 ElementBase.__index = ElementBase
@@ -394,7 +394,7 @@ function ElementBase:Destroy()
 	end
 end
 
--- â”€â”€ Window â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Window
 
 local Window = {}
 Window.__index = Window
@@ -512,8 +512,14 @@ function Window.new(config)
 	resizeHandle.AnchorPoint = Vector2.new(1, 1)
 	resizeHandle.BackgroundTransparency = 1
 	resizeHandle.BorderSizePixel = 0
-	resizeHandle.Cursor = "ResizeSouthEast"
 	resizeHandle.Parent = self.Container
+
+	-- Mouse cursor change for resize handle
+	local function updateResizeCursor(enter)
+		if Mouse then Mouse.Icon = enter and "rbxasset://system/cursors/SizeNESW" or "" end
+	end
+	resizeHandle.MouseEnter:Connect(function() updateResizeCursor(true) end)
+	resizeHandle.MouseLeave:Connect(function() updateResizeCursor(false) end)
 
 	local resizeIcon = CreateIcon("icons/editor/resize", 10, COLORS.TextDim)
 	resizeIcon.Position = UDim2.fromOffset(2, 2)
@@ -763,7 +769,7 @@ function Window:Notify(text, duration)
 	-- Animate in
 	notif.Size = UDim2.new(1, 0, 0, 0)
 	notif.AutomaticSize = Enum.AutomaticSize.Y
-	local _, contentH = notif.AbsoluteSize.Y, notif.AutomaticSize
+	local _ = notif.AbsoluteSize.Y
 	task.delay(0.05, function()
 		local size = msg.TextBounds.Y + 20
 		TweenObject(notif, { Size = UDim2.new(1, 0, 0, size) }, TWEEN.Bounce)
@@ -777,7 +783,7 @@ function Window:Notify(text, duration)
 	end)
 end
 
--- â”€â”€ Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Tab
 
 local Tab = {}
 Tab.__index = Tab
@@ -845,7 +851,7 @@ function Tab:AddRightSection(name)
 	return self:AddSection(name, "right")
 end
 
--- â”€â”€ Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Section
 
 local Section = {}
 Section.__index = Section
@@ -915,8 +921,7 @@ function Section.new(name, parentTab, isLeft)
 	return self
 end
 
--- â”€â”€ Element Creation Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
--- These go on the Section (and also Tab, which delegates)
+-- Element Creation Helpers
 
 -- Toggle
 function Section:AddToggle(index, opts)
@@ -1714,7 +1719,7 @@ function Section:AddDependencyBox()
 	return depBox
 end
 
--- â”€â”€ Label.AddColorPicker passthrough â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Label.AddColorPicker passthrough
 
 local ColorPickerActive = false
 
@@ -1754,7 +1759,7 @@ function Section:AddColorPicker(index, opts)
 	}
 end
 
--- â”€â”€ Label.AddKeyPicker passthrough â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Label.AddKeyPicker passthrough
 
 function Section:AddKeyPicker(index, opts)
 	opts = opts or {}
@@ -1875,7 +1880,7 @@ function Section:AddKeyPicker(index, opts)
 	return keybindObj
 end
 
--- â”€â”€ Tab element delegation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Tab element delegation
 -- So users can call tab:AddToggle() directly (auto-creates a section)
 
 function Tab:AddToggle(index, opts)
@@ -1930,7 +1935,7 @@ function Tab:GetOrCreateSection()
 	return mainSection
 end
 
--- â”€â”€ Theme Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Theme Manager
 
 local ThemeManager = {}
 ThemeManager.__index = ThemeManager
@@ -1969,7 +1974,7 @@ function ThemeManager:ApplyToGroupbox(groupbox)
 	return self:ApplyToTab(groupbox)
 end
 
--- â”€â”€ Save Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Save Manager
 
 local SaveManager = {}
 SaveManager.__index = SaveManager
@@ -2012,7 +2017,7 @@ function SaveManager:LoadAutoloadConfig()
 	-- Placeholder
 end
 
--- â”€â”€ Library Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Library Export
 
 function ParacetamolUILib:CreateWindow(config)
 	config = config or {}
