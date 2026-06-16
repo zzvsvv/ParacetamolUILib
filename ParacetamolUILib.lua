@@ -834,6 +834,11 @@ function Tab:Show()
 	self.Container.Visible = true
 	self.Active = true
 end
+function Tab:Hide()
+	self.Container.Visible = false
+	self.Active = false
+end
+
 
 function Tab:AddSection(name, side)
 	side = side or "left"

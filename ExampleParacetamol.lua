@@ -197,23 +197,23 @@ local function createESPForPlayer(player)
 
 	-- Health bar background
 	local healthBg = Drawing.new('Square')
-	esp.HealthBg.Visible = false
-	esp.HealthBg.Color = Color3.fromRGB(30, 30, 30)
-	esp.HealthBg.Filled = true
-	esp.HealthBg.Thickness = 0
+	healthBg.Visible = false
+	healthBg.Color = Color3.fromRGB(30, 30, 30)
+	healthBg.Filled = true
+	healthBg.Thickness = 0
 
 	-- Health bar fill
 	local healthFill = Drawing.new('Square')
-	esp.HealthFill.Visible = false
-	esp.HealthFill.Filled = true
-	esp.HealthFill.Thickness = 0
+	healthFill.Visible = false
+	healthFill.Filled = true
+	healthFill.Thickness = 0
 
 	-- Tracer line
 	local tracer = Drawing.new('Line')
-	esp.Tracer.Visible = false
-	esp.Tracer.Color = Color3.fromRGB(180, 15, 15)
-	esp.Tracer.Thickness = 1
-	esp.Tracer.Transparency = 0.6
+	tracer.Visible = false
+	tracer.Color = Color3.fromRGB(180, 15, 15)
+	tracer.Thickness = 1
+	tracer.Transparency = 0.6
 
 	esp.Highlight = highlight
 	esp.Box = box
