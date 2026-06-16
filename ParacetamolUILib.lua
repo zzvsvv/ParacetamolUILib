@@ -828,7 +828,7 @@ function Tab.new(name, parentWindow)
 		sectionList.Parent = self.Container
 
 		return self
-
+	end
 
 function Tab:Show()
 	self.Container.Visible = true
