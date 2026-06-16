@@ -263,7 +263,7 @@ local function updateESP()
 			esp.HealthBg.Visible = false
 			esp.HealthFill.Visible = false
 			esp.Tracer.Visible = false
-			esp.Highlight.Enabled = ParacetamolToggles.ESP.Value and (ParacetamolToggles.ESPStyle.Value == 'Highlight' or ParacetamolToggles.ESPStyle.Value == 'Both')
+			esp.Highlight.Enabled = ParacetamolToggles.ESP.Value and (ParacetamolOptions.ESPStyle.Value == 'Highlight' or ParacetamolOptions.ESPStyle.Value == 'Both')
 			continue
 		end
 
@@ -276,7 +276,7 @@ local function updateESP()
 		local espEnabled = ParacetamolToggles.ESP.Value
 
 		-- Box
-		if espEnabled and ParacetamolToggles.ESPBoxes.Value and (ParacetamolToggles.ESPStyle.Value == 'Box' or ParacetamolToggles.ESPStyle.Value == 'Both') then
+		if espEnabled and ParacetamolToggles.ESPBoxes.Value and (ParacetamolOptions.ESPStyle.Value == 'Box' or ParacetamolOptions.ESPStyle.Value == 'Both') then
 			esp.Box.Visible = true
 			esp.Box.Size = Vector2.new(width, height)
 			esp.Box.Position = boxPos
@@ -327,7 +327,7 @@ local function updateESP()
 		end
 
 		-- Highlight
-		local style = ParacetamolToggles.ESPStyle.Value
+		local style = ParacetamolOptions.ESPStyle.Value
 		esp.Highlight.Enabled = espEnabled and (style == 'Highlight' or style == 'Both')
 	end
 end

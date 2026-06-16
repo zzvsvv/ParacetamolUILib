@@ -1,12 +1,12 @@
 --[[
-	ParacetamolUILib — Glassmorphic UI Library for Roblox
+	ParacetamolUILib â€” Glassmorphic UI Library for Roblox
 	https://raw.githubusercontent.com/zzvsvv/ParacetamolUILib/refs/heads/main/ParacetamolUILib.lua
 ]]
 
 local ParacetamolUILib = {}
 local version = "1.0.0"
 
--- ── Services ──────────────────────────────────────────────────────────────
+-- â”€â”€ Services â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -17,7 +17,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- ── Constants ─────────────────────────────────────────────────────────────
+-- â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 local COLORS = {
 	Accent = Color3.fromRGB(180, 15, 15),
 	AccentDark = Color3.fromRGB(120, 8, 8),
@@ -67,7 +67,7 @@ local TWEEN = {
 	Bounce = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
 }
 
--- ── Module-level stores ───────────────────────────────────────────────────
+-- â”€â”€ Module-level stores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 local ParacetamolToggles = {}
 local ParacetamolOptions = {}
 local Elements = {}
@@ -79,13 +79,19 @@ if getgenv then
 	getgenv().ParacetamolOptions = ParacetamolOptions
 end
 
--- ── Icon System ───────────────────────────────────────────────────────────
+-- â”€â”€ Icon System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 local ICON_CACHE = {}
 local function GetIcon(name)
 	if ICON_CACHE[name] then return ICON_CACHE[name] end
 	local success, id = pcall(GuiService.GetIcon, GuiService, name)
 	if success and id and id ~= "" then
-		local full = "rbxassetid://" .. tostring(id:match("%d+") or id)
+		local idStr = tostring(id)
+		local full
+		if idStr:find("rbxasset") then
+			full = idStr
+		else
+			full = "rbxassetid://" .. (idStr:match("%d+") or idStr)
+		end
 		ICON_CACHE[name] = full
 		return full
 	end
@@ -107,7 +113,7 @@ local function CreateIcon(iconName, size, color)
 	return img
 end
 
--- ── Utility Functions ─────────────────────────────────────────────────────
+-- â”€â”€ Utility Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function MakeDraggable(frame, dragHandle)
 	dragHandle = dragHandle or frame
@@ -251,7 +257,7 @@ local function TweenObject(obj, props, tweenInfo)
 	return tween
 end
 
--- ── Loading Screen ────────────────────────────────────────────────────────
+-- â”€â”€ Loading Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 local LoadingScreen = {}
 local loadingScreenInstance = nil
 
@@ -273,7 +279,7 @@ function LoadingScreen:Show()
 	bg.Parent = screen
 
 	local container = Instance.new("Frame")
-	container.Size = UDim2.fromOffset(280, 120)
+	container.Size = UDim2.fromOffset(280, 140)
 	container.Position = UDim2.fromScale(0.5, 0.5)
 	container.AnchorPoint = Vector2.new(0.5, 0.5)
 	container.BackgroundTransparency = 1
@@ -282,12 +288,12 @@ function LoadingScreen:Show()
 
 	-- Spinner
 	local spinner = Instance.new("ImageLabel")
-	spinner.Size = UDim2.fromOffset(40, 40)
-	spinner.Position = UDim2.fromScale(0.5, 0.3)
+	spinner.Size = UDim2.fromOffset(36, 36)
+	spinner.Position = UDim2.fromScale(0.5, 0.2)
 	spinner.AnchorPoint = Vector2.new(0.5, 0.5)
 	spinner.BackgroundTransparency = 1
 	spinner.BorderSizePixel = 0
-	spinner.Image = "rbxassetid://6026568198" -- loading circle
+	spinner.Image = "rbxassetid://603111159" -- loading circle
 	spinner.ImageColor3 = COLORS.Accent
 	spinner.Parent = container
 
@@ -296,8 +302,8 @@ function LoadingScreen:Show()
 
 	-- Title
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.fromScale(1, 0.35)
-	title.Position = UDim2.fromScale(0, 0.55)
+	title.Size = UDim2.new(1, 0, 0, 32)
+	title.Position = UDim2.new(0, 0, 0, 48)
 	title.BackgroundTransparency = 1
 	title.BorderSizePixel = 0
 	title.Text = "Paracetamol"
@@ -310,8 +316,8 @@ function LoadingScreen:Show()
 
 	-- Subtitle
 	local subtitle = Instance.new("TextLabel")
-	subtitle.Size = UDim2.fromScale(1, 0.2)
-	subtitle.Position = UDim2.fromScale(0, 0.78)
+	subtitle.Size = UDim2.new(1, 0, 0, 20)
+	subtitle.Position = UDim2.new(0, 0, 0, 96)
 	subtitle.BackgroundTransparency = 1
 	subtitle.BorderSizePixel = 0
 	subtitle.Text = "loading..."
@@ -324,8 +330,8 @@ function LoadingScreen:Show()
 
 	-- Version
 	local ver = Instance.new("TextLabel")
-	ver.Size = UDim2.fromScale(1, 0.15)
-	ver.Position = UDim2.fromScale(0, 0.92)
+	ver.Size = UDim2.new(1, 0, 0, 16)
+	ver.Position = UDim2.new(0, 0, 0, 122)
 	ver.BackgroundTransparency = 1
 	ver.BorderSizePixel = 0
 	ver.Text = "v" .. version
@@ -338,7 +344,7 @@ function LoadingScreen:Show()
 	-- Accent line under title
 	local line = Instance.new("Frame")
 	line.Size = UDim2.new(0, 0, 0, 2)
-	line.Position = UDim2.fromScale(0.5, 0.72)
+	line.Position = UDim2.new(0.5, 0, 0, 86)
 	line.AnchorPoint = Vector2.new(0.5, 0.5)
 	line.BackgroundColor3 = COLORS.Accent
 	line.BorderSizePixel = 0
@@ -377,7 +383,7 @@ end
 
 LoadingScreen:Show()
 
--- ── Element Base (mixin) ──────────────────────────────────────────────────
+-- â”€â”€ Element Base (mixin) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local ElementBase = {}
 ElementBase.__index = ElementBase
@@ -399,7 +405,7 @@ function ElementBase:Destroy()
 	end
 end
 
--- ── Window ────────────────────────────────────────────────────────────────
+-- â”€â”€ Window â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local Window = {}
 Window.__index = Window
@@ -782,7 +788,7 @@ function Window:Notify(text, duration)
 	end)
 end
 
--- ── Tab ───────────────────────────────────────────────────────────────────
+-- â”€â”€ Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local Tab = {}
 Tab.__index = Tab
@@ -850,7 +856,7 @@ function Tab:AddRightSection(name)
 	return self:AddSection(name, "right")
 end
 
--- ── Section ───────────────────────────────────────────────────────────────
+-- â”€â”€ Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local Section = {}
 Section.__index = Section
@@ -920,7 +926,7 @@ function Section.new(name, parentTab, isLeft)
 	return self
 end
 
--- ── Element Creation Helpers ──────────────────────────────────────────────
+-- â”€â”€ Element Creation Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- These go on the Section (and also Tab, which delegates)
 
 -- Toggle
@@ -1420,6 +1426,7 @@ function Section:AddDropdown(index, opts)
 				else
 					selected = { [val] = true }
 					selLabel.Text = tostring(val)
+					dropdownObj.Value = tostring(val)
 					callback(val)
 					closeDropdown()
 				end
@@ -1472,7 +1479,7 @@ function Section:AddDropdown(index, opts)
 		Index = index,
 		Frame = container,
 		Label = label,
-		Value = selected,
+			Value = multi and selected or (next(selected) and next(selected) or nil),
 		Callback = callback,
 		OnChangedCallbacks = {},
 		SetValue = function(_, val)
@@ -1480,6 +1487,7 @@ function Section:AddDropdown(index, opts)
 				selected = val
 			else
 				selected = { [tostring(val)] = true }
+					dropdownObj.Value = tostring(val)
 				selLabel.Text = tostring(val)
 			end
 			callback(val)
@@ -1717,7 +1725,7 @@ function Section:AddDependencyBox()
 	return depBox
 end
 
--- ── Label.AddColorPicker passthrough ──────────────────────────────────────
+-- â”€â”€ Label.AddColorPicker passthrough â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local ColorPickerActive = false
 
@@ -1757,7 +1765,7 @@ function Section:AddColorPicker(index, opts)
 	}
 end
 
--- ── Label.AddKeyPicker passthrough ────────────────────────────────────────
+-- â”€â”€ Label.AddKeyPicker passthrough â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function Section:AddKeyPicker(index, opts)
 	opts = opts or {}
@@ -1878,7 +1886,7 @@ function Section:AddKeyPicker(index, opts)
 	return keybindObj
 end
 
--- ── Tab element delegation ────────────────────────────────────────────────
+-- â”€â”€ Tab element delegation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- So users can call tab:AddToggle() directly (auto-creates a section)
 
 function Tab:AddToggle(index, opts)
@@ -1933,7 +1941,7 @@ function Tab:GetOrCreateSection()
 	return mainSection
 end
 
--- ── Theme Manager ─────────────────────────────────────────────────────────
+-- â”€â”€ Theme Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local ThemeManager = {}
 ThemeManager.__index = ThemeManager
@@ -1972,7 +1980,7 @@ function ThemeManager:ApplyToGroupbox(groupbox)
 	return self:ApplyToTab(groupbox)
 end
 
--- ── Save Manager ──────────────────────────────────────────────────────────
+-- â”€â”€ Save Manager â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local SaveManager = {}
 SaveManager.__index = SaveManager
@@ -2015,7 +2023,7 @@ function SaveManager:LoadAutoloadConfig()
 	-- Placeholder
 end
 
--- ── Library Export ────────────────────────────────────────────────────────
+-- â”€â”€ Library Export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ParacetamolUILib:CreateWindow(config)
 	config = config or {}
