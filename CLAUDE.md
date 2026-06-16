@@ -50,3 +50,25 @@ Subtle gradients when appropriate.
 Readable typography.
 Consistent margins and padding.
 Good contrast and accessibility.
+
+
+Tool Usage Rules
+
+Before writing or modifying Roblox code:
+
+Use Context7 to verify Roblox APIs.
+Use available Lua LSP tools to inspect diagnostics.
+Read all related files before editing.
+Never assume API signatures.
+Verify all service names.
+Verify all event names.
+Verify all property names.
+
+When fixing code:
+
+Gather diagnostics first.
+Explain root cause.
+Apply fix.
+Re-check diagnostics.
+
+Do not generate code before checking available tools.

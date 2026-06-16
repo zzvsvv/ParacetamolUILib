@@ -1019,11 +1019,11 @@ function Section:AddToggle(index, opts)
 		Value = default,
 		Callback = callback,
 		OnChangedCallbacks = {},
-		SetValue = function(_, new)
+		SetValue = function(self, new)
 			new = not not new
 			if new == state then return end
 			state = new
-			toggleObj.Value = new
+			self.Value = new
 			if new then
 				TweenObject(switch, { BackgroundColor3 = COLORS.Accent }, TWEEN.Fast)
 				TweenObject(knob, { Position = UDim2.fromOffset(16, 2) }, TWEEN.Fast)
@@ -1038,12 +1038,12 @@ function Section:AddToggle(index, opts)
 				end
 			end
 			callback(new)
-			for _, cb in ipairs(toggleObj.OnChangedCallbacks) do
+			for _, cb in ipairs(self.OnChangedCallbacks) do
 				task.spawn(cb, new)
 			end
 		end,
-		OnChanged = function(_, cb)
-			table.insert(toggleObj.OnChangedCallbacks, cb)
+		OnChanged = function(self, cb)
+			table.insert(self.OnChangedCallbacks, cb)
 		end,
 		GetValue = function()
 			return state
@@ -1287,7 +1287,7 @@ function Section:AddSlider(index, opts)
 		Value = currentValue,
 		Callback = callback,
 		OnChangedCallbacks = {},
-		SetValue = function(_, val)
+		SetValue = function(self, val)
 			val = math.clamp(val, min, max)
 			local ratio = (val - min) / (max - min)
 			currentValue = val
@@ -1295,8 +1295,8 @@ function Section:AddSlider(index, opts)
 			valueLabel.Text = tostring(val) .. suffix
 			callback(val)
 		end,
-		OnChanged = function(_, cb)
-			table.insert(sliderObj.OnChangedCallbacks, cb)
+		OnChanged = function(self, cb)
+			table.insert(self.OnChangedCallbacks, cb)
 		end,
 		GetValue = function()
 			return currentValue
@@ -1478,18 +1478,18 @@ function Section:AddDropdown(index, opts)
 			Value = multi and selected or (next(selected) and next(selected) or nil),
 		Callback = callback,
 		OnChangedCallbacks = {},
-		SetValue = function(_, val)
+		SetValue = function(self, val)
 			if type(val) == "table" then
 				selected = val
 			else
 				selected = { [tostring(val)] = true }
-					dropdownObj.Value = tostring(val)
+					self.Value = tostring(val)
 				selLabel.Text = tostring(val)
 			end
 			callback(val)
 		end,
-		OnChanged = function(_, cb)
-			table.insert(dropdownObj.OnChangedCallbacks, cb)
+		OnChanged = function(self, cb)
+			table.insert(self.OnChangedCallbacks, cb)
 		end,
 		GetValue = function()
 			return selected
@@ -1586,11 +1586,11 @@ function Section:AddInput(index, opts)
 		Value = default,
 		Callback = callback,
 		OnChangedCallbacks = {},
-		SetValue = function(_, val)
+		SetValue = function(self, val)
 			box.Text = tostring(val)
 		end,
-		OnChanged = function(_, cb)
-			table.insert(inputObj.OnChangedCallbacks, cb)
+		OnChanged = function(self, cb)
+			table.insert(self.OnChangedCallbacks, cb)
 		end,
 		GetValue = function()
 			return box.Text
@@ -1709,8 +1709,8 @@ function Section:AddDependencyBox()
 		AddLabel = function(_, ...) return Section.AddLabel(self, ...) end,
 		AddDivider = function(_, ...) return Section.AddDivider(self, ...) end,
 		AddDependencyBox = function(_, ...) return Section.AddDependencyBox(self, ...) end,
-		SetupDependencies = function(_, deps)
-			depBox.Dependencies = deps
+		SetupDependencies = function(self, deps)
+			self.Dependencies = deps
 		end,
 	}
 
@@ -1755,7 +1755,7 @@ function Section:AddColorPicker(index, opts)
 			container.BackgroundColor3 = color
 			callback(color)
 		end,
-		OnChanged = function(_, cb)
+		OnChanged = function(self, cb)
 			-- Placeholder
 		end,
 	}
@@ -1801,25 +1801,25 @@ function Section:AddKeyPicker(index, opts)
 			label.Text = "..."
 			label.TextColor3 = COLORS.Accent
 		end,
-		GetState = function()
+		GetState = function(self)
 			if mode == "Always" then return true end
-			if mode == "Toggle" then return keybindObj.Holding end
-			if mode == "Hold" then return keybindObj.Holding end
+			if mode == "Toggle" then return self.Holding end
+			if mode == "Hold" then return self.Holding end
 			return false
 		end,
-		OnClick = function(_, cb)
-			keybindObj.OnClickCallback = cb
+		OnClick = function(self, cb)
+			self.OnClickCallback = cb
 		end,
-		OnChanged = function(_, cb)
-			keybindObj.OnChangedCallback = cb
+		OnChanged = function(self, cb)
+			self.OnChangedCallback = cb
 		end,
-		SetValue = function(_, val)
+		SetValue = function(self, val)
 			if type(val) == "table" then
-				keybindObj.Value = val[1] or default
+				self.Value = val[1] or default
 				label.Text = val[1] or default
-				keybindObj.Mode = val[2] or mode
+				self.Mode = val[2] or mode
 			else
-				keybindObj.Value = val
+				self.Value = val
 				label.Text = val
 			end
 		end,
