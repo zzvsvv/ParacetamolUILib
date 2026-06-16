@@ -15,7 +15,7 @@ local RunService = game:GetService("RunService")
 local TextService = game:GetService("TextService")
 local ContextActionService = game:GetService("ContextActionService")
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+local Mouse = LocalPlayer and LocalPlayer:GetMouse()
 
 -- â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 local COLORS = {
@@ -83,7 +83,9 @@ end
 local ICON_CACHE = {}
 local function GetIcon(name)
 	if ICON_CACHE[name] then return ICON_CACHE[name] end
-	local success, id = pcall(GuiService.GetIcon, GuiService, name)
+	local getIcon = rawget(GuiService, "GetIcon")
+	if not getIcon then return nil end
+	local success, id = pcall(getIcon, GuiService, name)
 	if success and id and id ~= "" then
 		local idStr = tostring(id)
 		local full
