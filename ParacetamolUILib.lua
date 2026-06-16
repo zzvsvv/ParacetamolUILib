@@ -805,87 +805,47 @@ function Tab.new(name, parentWindow)
 		Active = false,
 	}, Tab)
 
-	-- Main tab container
-	self.Container = Instance.new("ScrollingFrame")
-	self.Container.Size = UDim2.fromScale(1, 1)
-	self.Container.Position = UDim2.fromOffset(0, 0)
-	self.Container.BackgroundTransparency = 1
-	self.Container.BorderSizePixel = 0
-	self.Container.ScrollBarThickness = 3
-	self.Container.ScrollBarImageColor3 = COLORS.Accent
-	self.Container.ScrollBarImageTransparency = 0.5
-	self.Container.CanvasSize = UDim2.fromScale(0, 0)
-	self.Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	self.Container.Visible = false
-	self.Container.Parent = parentWindow.ContentArea
 
-	-- Content frame with vertical layout for section rows
-	self.ContentFrame = Instance.new("Frame")
-	self.ContentFrame.Name = "ContentFrame"
-	self.ContentFrame.Size = UDim2.fromScale(1, 0)
-	self.ContentFrame.BackgroundTransparency = 1
-	self.ContentFrame.BorderSizePixel = 0
-	self.ContentFrame.AutomaticSize = Enum.AutomaticSize.Y
-	self.ContentFrame.Parent = self.Container
+		-- Main tab container
+		self.Container = Instance.new("ScrollingFrame")
+		self.Container.Size = UDim2.fromScale(1, 1)
+		self.Container.Position = UDim2.fromOffset(0, 0)
+		self.Container.BackgroundTransparency = 1
+		self.Container.BorderSizePixel = 0
+		self.Container.ScrollBarThickness = 3
+		self.Container.ScrollBarImageColor3 = COLORS.Accent
+		self.Container.ScrollBarImageTransparency = 0.5
+		self.Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		self.Container.Visible = false
+		self.Container.Parent = parentWindow.ContentArea
 
-	self.SectionLayout = Instance.new("UIListLayout")
-	self.SectionLayout.Padding = UDim.new(0, 6)
-	self.SectionLayout.FillDirection = Enum.FillDirection.Vertical
-	self.SectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-	self.SectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	self.SectionLayout.Parent = self.ContentFrame
+		-- UIListLayout for vertical stacking of sections
+		local sectionList = Instance.new("UIListLayout")
+		sectionList.Padding = UDim.new(0, 6)
+		sectionList.FillDirection = Enum.FillDirection.Vertical
+		sectionList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+		sectionList.SortOrder = Enum.SortOrder.LayoutOrder
+		sectionList.Parent = self.Container
 
-	return self
-end
+		return self
+
 
 function Tab:Show()
 	self.Container.Visible = true
 	self.Active = true
 end
 
-function Tab:Hide()
-	self.Container.Visible = false
-	self.Active = false
-end
-
 function Tab:AddSection(name, side)
 	side = side or "left"
 	self.SectionIndex = self.SectionIndex + 1
-
-	-- Create row containers for left/right pairing
 	local isLeft = side == "left"
 
-	local parentContainer
-	if isLeft then
-		-- Start a new row
-		local row = Instance.new("Frame")
-		row.Name = "SectionRow"
-		row.Size = UDim2.fromScale(1, 0)
-		row.BackgroundTransparency = 1
-		row.BorderSizePixel = 0
-		row.AutomaticSize = Enum.AutomaticSize.Y
-		row.LayoutOrder = self.SectionIndex
-		row.Parent = self.ContentFrame
-		self.CurrentRow = row
-		parentContainer = row
-	else
-		-- Add to the current row (must follow a left section)
-		local row = self.CurrentRow
-		if not row then
-			row = Instance.new("Frame")
-			row.Name = "SectionRow"
-			row.Size = UDim2.fromScale(1, 0)
-			row.BackgroundTransparency = 1
-			row.BorderSizePixel = 0
-			row.AutomaticSize = Enum.AutomaticSize.Y
-			row.LayoutOrder = self.SectionIndex
-			row.Parent = self.ContentFrame
-			self.CurrentRow = row
-		end
-		parentContainer = row
-	end
+	-- Create section as direct child of ScrollingFrame (positioned by UIListLayout)
+	local section = Section.new(name, self, isLeft)
+	section.Container.Size = UDim2.new(1, 0, 0, 0)
+	section.Container.Position = UDim2.fromOffset(0, 0)
+	section.Container.LayoutOrder = self.SectionIndex
 
-	local section = Section.new(name, self, isLeft, parentContainer)
 	self.Sections[#self.Sections + 1] = section
 	return section
 end
@@ -898,12 +858,13 @@ function Tab:AddRightSection(name)
 	return self:AddSection(name, "right")
 end
 
+
 -- Section
 
 Section = {}
 Section.__index = Section
 
-function Section.new(name, parentTab, isLeft, parentOverride)
+function Section.new(name, parentTab, isLeft)
 	local self = setmetatable({
 		Name = name,
 		Tab = parentTab,
@@ -920,8 +881,7 @@ function Section.new(name, parentTab, isLeft, parentOverride)
 	self.Container.BackgroundTransparency = TRANSPARENCY.Section
 	self.Container.BorderSizePixel = 0
 	self.Container.AutomaticSize = Enum.AutomaticSize.Y
-		self.Container.Parent = parentOverride or parentTab.Container
-
+	self.Container.Parent = parentTab.Container
 	CreateRound(self.Container, CORNERS.Section)
 	CreateStroke(self.Container, COLORS.GlassHighlight, 0.9)
 	CreateGlowOverlay(self.Container)
@@ -1970,18 +1930,10 @@ function Tab:GetOrCreateSection()
 	if lastSection then
 		return lastSection
 	end
-	-- Create default section in a row
-	local row = Instance.new("Frame")
-	row.Name = "SectionRow"
-	row.Size = UDim2.fromScale(1, 0)
-	row.BackgroundTransparency = 1
-	row.BorderSizePixel = 0
-	row.AutomaticSize = Enum.AutomaticSize.Y
-	row.LayoutOrder = 1
-	row.Parent = self.ContentFrame
-
-	local mainSection = Section.new("", self, true, row)
-	mainSection.Container.Size = UDim2.new(1, -6, 0, 0)
+	-- Create default section as direct child of ScrollingFrame
+	local mainSection = Section.new("", self, true)
+	mainSection.Container.Size = UDim2.new(1, 0, 0, 0)
+	mainSection.Container.Position = UDim2.fromOffset(0, 0)
 	table.insert(self.Sections, mainSection)
 
 	-- Update title label to be hidden
