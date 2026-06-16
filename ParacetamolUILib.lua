@@ -79,25 +79,12 @@ if getgenv then
 	getgenv().ParacetamolOptions = ParacetamolOptions
 end
 
--- â”€â”€ Icon System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-local ICON_CACHE = {}
+-- Icon system uses colored dots when custom icons are unavailable
+
 local function GetIcon(name)
-	if ICON_CACHE[name] then return ICON_CACHE[name] end
-	local getIcon = rawget(GuiService, "GetIcon")
-	if not getIcon then return nil end
-	local success, id = pcall(getIcon, GuiService, name)
-	if success and id and id ~= "" then
-		local idStr = tostring(id)
-		local full
-		if idStr:find("rbxasset") then
-			full = idStr
-		else
-			full = "rbxassetid://" .. (idStr:match("%d+") or idStr)
-		end
-		ICON_CACHE[name] = full
-		return full
-	end
-	return nil
+
+	return nil -- GuiService.GetIcon not available in this Roblox version
+
 end
 
 local function CreateIcon(iconName, size, color)
@@ -2088,3 +2075,4 @@ setupToggle()
 
 -- Return the library
 return ParacetamolUILib
+
