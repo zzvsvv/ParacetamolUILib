@@ -73,6 +73,8 @@ local ParacetamolOptions = {}
 local Elements = {}
 local Connections = {}
 local Unloaded = false
+local Tab -- forward declaration
+local Section -- forward declaration
 
 if getgenv then
 	getgenv().ParacetamolToggles = ParacetamolToggles
@@ -785,7 +787,7 @@ end
 
 -- Tab
 
-local Tab = {}
+Tab = {}
 Tab.__index = Tab
 
 local tabIndexCounter = 0
@@ -853,7 +855,7 @@ end
 
 -- Section
 
-local Section = {}
+Section = {}
 Section.__index = Section
 
 function Section.new(name, parentTab, isLeft)
@@ -2080,4 +2082,3 @@ setupToggle()
 
 -- Return the library
 return ParacetamolUILib
-
