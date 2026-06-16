@@ -197,23 +197,23 @@ local function createESPForPlayer(player)
 
 	-- Health bar background
 	local healthBg = Drawing.new('Square')
-	healthBg.Visible = false
-	healthBg.Color = Color3.fromRGB(30, 30, 30)
-	healthBg.Filled = true
-	healthBg.Thickness = 0
+	esp.HealthBg.Visible = false
+	esp.HealthBg.Color = Color3.fromRGB(30, 30, 30)
+	esp.HealthBg.Filled = true
+	esp.HealthBg.Thickness = 0
 
 	-- Health bar fill
 	local healthFill = Drawing.new('Square')
-	healthFill.Visible = false
-	healthFill.Filled = true
-	healthFill.Thickness = 0
+	esp.HealthFill.Visible = false
+	esp.HealthFill.Filled = true
+	esp.HealthFill.Thickness = 0
 
 	-- Tracer line
 	local tracer = Drawing.new('Line')
-	tracer.Visible = false
-	tracer.Color = Color3.fromRGB(180, 15, 15)
-	tracer.Thickness = 1
-	tracer.Transparency = 0.6
+	esp.Tracer.Visible = false
+	esp.Tracer.Color = Color3.fromRGB(180, 15, 15)
+	esp.Tracer.Thickness = 1
+	esp.Tracer.Transparency = 0.6
 
 	esp.Highlight = highlight
 	esp.Box = box
@@ -303,27 +303,27 @@ local function updateESP()
 			local barY = footPos.Y + 4
 
 			-- Background
-			healthBg.Visible = true
-			healthBg.Size = Vector2.new(barWidth, barHeight)
-			healthBg.Position = Vector2.new(boxPos.X, barY)
+			esp.HealthBg.Visible = true
+			esp.HealthBg.Size = Vector2.new(barWidth, barHeight)
+			esp.HealthBg.Position = Vector2.new(boxPos.X, barY)
 
 			-- Fill
-			healthFill.Visible = true
-			healthFill.Size = Vector2.new(barWidth * healthPct, barHeight)
-			healthFill.Position = Vector2.new(boxPos.X, barY)
-			healthFill.Color = Color3.fromHSV(healthPct * 0.35, 1, 1)
+			esp.HealthFill.Visible = true
+			esp.HealthFill.Size = Vector2.new(barWidth * healthPct, barHeight)
+			esp.HealthFill.Position = Vector2.new(boxPos.X, barY)
+			esp.HealthFill.Color = Color3.fromHSV(healthPct * 0.35, 1, 1)
 		else
-			healthBg.Visible = false
-			healthFill.Visible = false
+			esp.HealthBg.Visible = false
+			esp.HealthFill.Visible = false
 		end
 
 		-- Tracer
 		if espEnabled and ParacetamolToggles.ESPTracers.Value then
-			tracer.Visible = true
-			tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-			tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+			esp.Tracer.Visible = true
+			esp.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+			esp.Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
 		else
-			tracer.Visible = false
+			esp.Tracer.Visible = false
 		end
 
 		-- Highlight
