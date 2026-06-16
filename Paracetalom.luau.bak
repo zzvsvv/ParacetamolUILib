@@ -1,0 +1,203 @@
+-- Paracetamol.luau
+-- Automated breakables tapper & orb collector
+-- Uses LinoriaLib for the UI framework
+
+local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
+
+local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+
+local Window = Library:CreateWindow({
+	Title = 'Paracetamol',
+	Center = true,
+	AutoShow = true,
+})
+
+-- ── Tabs ──────────────────────────────────────────────────────────────────
+local Tabs = {
+	Main = Window:AddTab('Main'),
+	['UI Settings'] = Window:AddTab('UI Settings'),
+}
+
+-- ── Remote Events ────────────────────────────────────────────────────────
+local ReplicatedStorage = game:GetService('ReplicatedStorage')
+local Players = game:GetService('Players')
+local LocalPlayer = Players.LocalPlayer
+
+local BreakEvent = ReplicatedStorage.Network.Breakables_PlayerDealDamage
+local OrbEvent = ReplicatedStorage.Network['Orbs: Collect']
+
+-- ── UI Setup ─────────────────────────────────────────────────────────────
+local GroupBox = Tabs.Main:AddLeftGroupbox('Automation')
+
+GroupBox:AddToggle('AutoTap', {
+	Text = 'Auto-Tap',
+	Default = false,
+	Tooltip = 'Automatically taps breakables within a 60 stud radius around you',
+})
+
+GroupBox:AddToggle('CollectOrbs', {
+	Text = 'Collect Orbs',
+	Default = false,
+	Tooltip = 'Automatically collects all orbs within a 100 stud radius',
+})
+
+-- ── Helpers ───────────────────────────────────────────────────────────────
+
+local function getCharacterRoot()
+	local char = LocalPlayer.Character
+	if not char then return nil end
+	return char:FindFirstChild('HumanoidRootPart') or char:FindFirstChildWhichIsA('BasePart')
+end
+
+--- Returns a list of breakable IDs (folder child names) within 60 studs.
+local function getNearbyBreakables()
+	local root = getCharacterRoot()
+	if not root then return {} end
+
+	local pos = root.Position
+	local container = workspace:FindFirstChild('__THINGS')
+	if not container then return {} end
+
+	local breakables = container:FindFirstChild('Breakables')
+	if not breakables then return {} end
+
+	local nearby = {}
+	for _, child in breakables:GetChildren() do
+		-- Each child is a model whose name IS the breakable ID
+		local part = child:IsA('BasePart') and child
+			or (child:IsA('Model') and (child.PrimaryPart or child:FindFirstChildWhichIsA('BasePart')))
+		if part and (part.Position - pos).Magnitude <= 60 then
+			nearby[#nearby + 1] = child.Name
+		end
+	end
+	return nearby
+end
+
+-- ── Orb Collection ────────────────────────────────────────────────────────
+-- Collects all orbs within a 100 stud radius.
+
+local orbFolder = workspace:FindFirstChild('__THINGS') and workspace.__THINGS:FindFirstChild('Orbs')
+
+--- Returns numeric orb IDs of orbs within 100 studs of the player.
+local function getNearbyOrbIDs()
+	local root = getCharacterRoot()
+	if not root or not orbFolder then return {} end
+
+	local pos = root.Position
+	local nearby = {}
+	for _, child in orbFolder:GetChildren() do
+		-- Each orb's name is a numeric string ID (e.g. "283")
+		local numericId = tonumber(child.Name)
+		if not numericId then continue end
+
+		local part = child:IsA('BasePart') and child
+			or (child:IsA('Model') and (child.PrimaryPart or child:FindFirstChildWhichIsA('BasePart')))
+		if part and (part.Position - pos).Magnitude <= 100 then
+			nearby[#nearby + 1] = numericId
+		end
+	end
+	return nearby
+end
+
+-- ── Auto-Tap Loop ─────────────────────────────────────────────────────────
+-- Fires at breakables in a rotating stagger: tap one, wait 50 ms, tap the
+-- next, etc.  The scan-list is refreshed every 500 ms so we don't hammer
+-- the workspace on every tick.
+
+coroutine.wrap(function()
+	local cachedBreakables = {}
+	local lastScan = 0
+	local scanInterval = 0.5 -- seconds between workspace scans
+	local staggerDelay = 0.05 -- 50 ms between individual taps
+	local tickIndex = 0
+
+	while true do
+		task.wait(0.1) -- main loop tick (matches the requested ~100 ms pace)
+
+		if not Toggles.AutoTap.Value then
+			tickIndex = 0
+			continue
+		end
+
+		-- Refresh the breakable list periodically
+		local now = tick()
+		if now - lastScan >= scanInterval then
+			cachedBreakables = getNearbyBreakables()
+			lastScan = now
+		end
+
+		if #cachedBreakables == 0 then
+			tickIndex = 0
+			continue
+		end
+
+		-- Rotating stagger: fire at one breakable, advance the index.
+		-- On the next tick we hit the next one, so over N ticks every
+		-- breakable gets hit roughly every N*100 ms.
+		tickIndex = tickIndex % #cachedBreakables + 1
+		local id = cachedBreakables[tickIndex]
+
+		task.spawn(function()
+			BreakEvent:FireServer(id)
+		end)
+
+		-- Extra micro-stagger within the loop tick so we're not sending
+		-- every fire on the exact same frame.
+		if tickIndex < #cachedBreakables then
+			task.wait(staggerDelay)
+		end
+	end
+end)()
+
+-- ── Collect Orbs Loop ────────────────────────────────────────────────────
+-- Batches up to 10 orb IDs per remote call to avoid lag.
+
+coroutine.wrap(function()
+	local MAX_ORBS_PER_BATCH = 10
+
+	while true do
+		task.wait(0.25)
+
+		if not Toggles.CollectOrbs.Value then
+			continue
+		end
+
+		local orbIDs = getNearbyOrbIDs()
+		if #orbIDs == 0 then
+			continue
+		end
+
+		-- Send in batches of up to 10
+		for i = 1, #orbIDs, MAX_ORBS_PER_BATCH do
+			if not Toggles.CollectOrbs.Value then break end
+
+			local batch = {}
+			local count = 0
+			for j = i, math.min(i + MAX_ORBS_PER_BATCH - 1, #orbIDs) do
+				count = count + 1
+				batch[count] = orbIDs[j]
+			end
+
+			task.spawn(function()
+				OrbEvent:FireServer(batch)
+			end)
+
+			task.wait()
+		end
+	end
+end)()
+
+-- ── UI Settings (Theme / Save) ────────────────────────────────────────────
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ 'MenuKeybind' })
+ThemeManager:SetFolder('Paracetamol')
+SaveManager:SetFolder('Paracetamol')
+
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
+
+SaveManager:LoadAutoloadConfig()
