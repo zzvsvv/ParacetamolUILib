@@ -815,9 +815,17 @@ function Tab.new(name, parentWindow)
 		self.Container.ScrollBarThickness = 3
 		self.Container.ScrollBarImageColor3 = COLORS.Accent
 		self.Container.ScrollBarImageTransparency = 0.5
-		self.Container.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		self.Container.CanvasSize = UDim2.fromOffset(0, 0)
 		self.Container.Visible = false
 		self.Container.Parent = parentWindow.ContentArea
+
+		-- Scroll content wrapper (reliable auto-sizing across Roblox versions)
+		local scrollContent = Instance.new("Frame")
+		scrollContent.Size = UDim2.fromScale(1, 0)
+		scrollContent.AutomaticSize = Enum.AutomaticSize.Y
+		scrollContent.BackgroundTransparency = 1
+		scrollContent.BorderSizePixel = 0
+		scrollContent.Parent = self.Container
 
 		-- UIListLayout for vertical stacking of sections
 		local sectionList = Instance.new("UIListLayout")
@@ -825,7 +833,14 @@ function Tab.new(name, parentWindow)
 		sectionList.FillDirection = Enum.FillDirection.Vertical
 		sectionList.HorizontalAlignment = Enum.HorizontalAlignment.Left
 		sectionList.SortOrder = Enum.SortOrder.LayoutOrder
-		sectionList.Parent = self.Container
+		sectionList.Parent = scrollContent
+
+		-- Sync canvas size to content (bypasses AutomaticCanvasSize compatibility)
+		scrollContent:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+			self.Container.CanvasSize = UDim2.fromOffset(0, scrollContent.AbsoluteSize.Y)
+		end)
+
+		self.ScrollContent = scrollContent
 
 		return self
 	end
@@ -878,61 +893,52 @@ function Section.new(name, parentTab, isLeft)
 		Elements = {},
 	}, Section)
 
-	-- Section container
-	self.Container = Instance.new("Frame")
-	self.Container.Size = UDim2.new(0.5, -6, 0, 0)
-	self.Container.Position = isLeft and UDim2.fromOffset(0, 0) or UDim2.new(0.5, 6, 0, 0)
-	self.Container.BackgroundColor3 = COLORS.Section
-	self.Container.BackgroundTransparency = TRANSPARENCY.Section
-	self.Container.BorderSizePixel = 0
-	self.Container.AutomaticSize = Enum.AutomaticSize.Y
-	self.Container.Parent = parentTab.Container
-	CreateRound(self.Container, CORNERS.Section)
-	CreateStroke(self.Container, COLORS.GlassHighlight, 0.9)
-	CreateGlowOverlay(self.Container)
+		-- Section container
+		self.Container = Instance.new("Frame")
+		self.Container.Size = UDim2.new(0.5, -6, 0, 0)
+		self.Container.Position = isLeft and UDim2.fromOffset(0, 0) or UDim2.new(0.5, 6, 0, 0)
+		self.Container.BackgroundColor3 = COLORS.Section
+		self.Container.BackgroundTransparency = TRANSPARENCY.Section
+		self.Container.BorderSizePixel = 0
+		self.Container.AutomaticSize = Enum.AutomaticSize.Y
+		self.Container.Parent = parentTab.ScrollContent
+		CreateRound(self.Container, CORNERS.Section)
+		CreateStroke(self.Container, COLORS.GlassHighlight, 0.9)
+		CreateGlowOverlay(self.Container)
 
-	-- Section title
-	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -16, 0, 28)
-	title.Position = UDim2.fromOffset(10, 6)
-	title.BackgroundTransparency = 1
-	title.BorderSizePixel = 0
-	title.Text = name or ""
-	title.Font = FONTS.Title
-	title.TextSize = 13
-	title.TextColor3 = COLORS.Text
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Parent = self.Container
+		-- Section title
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.new(1, -16, 0, 28)
+		title.Position = UDim2.fromOffset(10, 6)
+		title.BackgroundTransparency = 1
+		title.BorderSizePixel = 0
+		title.Text = name or ""
+		title.Font = FONTS.Title
+		title.TextSize = 13
+		title.TextColor3 = COLORS.Text
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.Parent = self.Container
 
-	-- Element layout
-	local layout = Instance.new("UIListLayout")
-	layout.Padding = UDim.new(0, 4)
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = self.Container
+		-- Content frame (properly bounded element area below the title)
+		self.ContentFrame = Instance.new("Frame")
+		self.ContentFrame.Size = UDim2.new(1, -20, 0, 0)
+		self.ContentFrame.Position = UDim2.fromOffset(10, 38)
+		self.ContentFrame.BackgroundTransparency = 1
+		self.ContentFrame.BorderSizePixel = 0
+		self.ContentFrame.AutomaticSize = Enum.AutomaticSize.Y
+		self.ContentFrame.Parent = self.Container
 
-	-- Padding
-	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0, 10)
-	pad.PaddingRight = UDim.new(0, 10)
-	pad.PaddingTop = UDim.new(0, 32)
-	pad.PaddingBottom = UDim.new(0, 10)
-	pad.Parent = self.Container
+		-- Element layout
+		local layout = Instance.new("UIListLayout")
+		layout.Padding = UDim.new(0, 4)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = self.ContentFrame
 
-	-- Spacer between sections
-	local spacer = Instance.new("Frame")
-	spacer.Size = UDim2.fromScale(1, 0)
-	spacer.Size = UDim2.new(1, 0, 0, 4)
-	spacer.BackgroundTransparency = 1
-	spacer.BorderSizePixel = 0
-	spacer.LayoutOrder = 9999
-	spacer.Parent = self.Container
+		-- Store layout for later use
+		self.Layout = layout
 
-	-- Store layout for later use
-	self.Layout = layout
-
-	return self
-end
-
+		return self
+	end
 -- Element Creation Helpers
 
 -- Toggle
@@ -948,7 +954,7 @@ function Section:AddToggle(index, opts)
 	container.BackgroundTransparency = TRANSPARENCY.Element
 	container.BorderSizePixel = 0
 	container.LayoutOrder = opts.Order or 1
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	CreateRound(container, CORNERS.Toggle)
 	CreateStroke(container, COLORS.GlassHighlight, 0.93)
@@ -1097,7 +1103,7 @@ function Section:AddButton(opts)
 	container.BackgroundTransparency = TRANSPARENCY.Element
 	container.BorderSizePixel = 0
 	container.LayoutOrder = opts.Order or 1
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	CreateRound(container, CORNERS.Button)
 	CreateStroke(container, COLORS.GlassHighlight, 0.93)
@@ -1179,7 +1185,7 @@ function Section:AddSlider(index, opts)
 	container.BackgroundTransparency = TRANSPARENCY.Element
 	container.BorderSizePixel = 0
 	container.LayoutOrder = opts.Order or 1
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	CreateRound(container, CORNERS.Element)
 	CreateStroke(container, COLORS.GlassHighlight, 0.93)
@@ -1343,7 +1349,7 @@ function Section:AddDropdown(index, opts)
 	container.BorderSizePixel = 0
 	container.ClipsDescendants = true
 	container.LayoutOrder = opts.Order or 1
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	CreateRound(container, CORNERS.Element)
 	CreateStroke(container, COLORS.GlassHighlight, 0.93)
@@ -1530,7 +1536,7 @@ function Section:AddInput(index, opts)
 	container.BackgroundTransparency = TRANSPARENCY.Element
 	container.BorderSizePixel = 0
 	container.LayoutOrder = opts.Order or 1
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	CreateRound(container, CORNERS.Element)
 	CreateStroke(container, COLORS.GlassHighlight, 0.93)
@@ -1621,7 +1627,7 @@ function Section:AddLabel(text, doesWrap)
 	container.BackgroundTransparency = 1
 	container.BorderSizePixel = 0
 	container.LayoutOrder = 999
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	local label = CreateTextLabel(text or "", FONTS.Text, 12, COLORS.Text, Enum.TextXAlignment.Left)
 	label.Size = UDim2.new(1, -4, 0, 0)
@@ -1664,7 +1670,7 @@ function Section:AddDivider()
 	container.BackgroundTransparency = 1
 	container.BorderSizePixel = 0
 	container.LayoutOrder = 9999
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	local line = Instance.new("Frame")
 	line.Size = UDim2.new(1, -8, 0, 1)
@@ -1690,7 +1696,7 @@ function Section:AddDependencyBox()
 	container.ClipsDescendants = true
 	container.Visible = true
 	container.LayoutOrder = 1
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	local layout = Instance.new("UIListLayout")
 	layout.Padding = UDim.new(0, 4)
@@ -1745,7 +1751,7 @@ function Section:AddColorPicker(index, opts)
 	container.Size = UDim2.fromOffset(20, 20)
 	container.BackgroundColor3 = default
 	container.BorderSizePixel = 0
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	CreateRound(container, 4)
 	CreateStroke(container, COLORS.GlassHighlight, 0.9)
@@ -1787,7 +1793,7 @@ function Section:AddKeyPicker(index, opts)
 	container.BackgroundColor3 = COLORS.Element
 	container.BackgroundTransparency = TRANSPARENCY.Element
 	container.BorderSizePixel = 0
-	container.Parent = self.Container
+	container.Parent = self.ContentFrame
 
 	CreateRound(container, 4)
 	CreateStroke(container, COLORS.GlassHighlight, 0.9)
